@@ -1,0 +1,17 @@
+
+*.prefs
+*.prefs
+*.su
+*.mk
+*.o
+*.cyclo
+*.d
+*.list
+*.hex
+*.map
+*.elf
+*.prefs
+*.prefs
+RC_Car_Source/.settings/stm32cubeide.project.prefs
+RC_Car_Source/Debug/makefile
+RC_Car_Source/.settings/stm32cubeide.project.prefs
