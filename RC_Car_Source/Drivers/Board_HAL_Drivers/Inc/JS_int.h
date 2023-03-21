@@ -33,7 +33,7 @@ typedef enum JS_SwType{
 void JS_Init(JS_HandlerType * JS_Obj);
 void JS_ReadPosition(JS_HandlerType * JS_Obj, JS_PosType * JS_Pos);
 JS_SwType JS_ReadSW(JS_HandlerType * JS_Obj);
-JS_EnableExtInt(JS_HandlerType * JS_Obj , JS_Callback_FN callback_fn);
+void JS_EnableExtInt(JS_HandlerType * JS_Obj , JS_Callback_FN callback_fn);
 
 
 #endif /* BOARD_HAL_DRIVERS_INC_JS_INT_H_ */
