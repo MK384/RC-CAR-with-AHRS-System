@@ -9,7 +9,13 @@
 
 // Functions to manage the nRF24L01+ transceiver
 
-#include "Board_HAL_Drivers/Inc/nRF24_FD.h"
+#include <Board_HAL_Drivers/Inc/nRF24_HAL.h>
+#include <Board_HAL_Drivers/Inc/nRF24_LL.h>
+
+
+
+
+
 
 // Read a register
 // input:
@@ -76,14 +82,21 @@ static void nRF24_WriteMBReg(uint8_t reg, uint8_t *pBuf, uint8_t count) {
 	nRF24_CSN_H();
 }
 
-// Set transceiver to it's initial state
-// note: RX/TX pipe addresses remains untouched
-void nRF24_Init(void) {
+
+void nRF24_Reset(void) {
+/**
+ * @brief  nRF24_Reset : Reset the nRF24 Module to its initial values.
+ * @param  void :
+ * @retval void :
+ * @note
+ */
+
+	 // Set transceiver to it's initial state
 	// Write to registers their initial values
 	nRF24_WriteReg(nRF24_REG_CONFIG, 0x08);
 	nRF24_WriteReg(nRF24_REG_EN_AA, 0x3F);
 	nRF24_WriteReg(nRF24_REG_EN_RXADDR, 0x03);
-	nRF24_WriteReg(nRF24_REG_SETUP_AW, 0x03);
+	nRF24_WriteReg(nRF24_REG_SETUP_AW, 0x00);
 	nRF24_WriteReg(nRF24_REG_SETUP_RETR, 0x03);
 	nRF24_WriteReg(nRF24_REG_RF_CH, 0x02);
 	nRF24_WriteReg(nRF24_REG_RF_SETUP, 0x0E);
@@ -103,16 +116,16 @@ void nRF24_Init(void) {
 
 	// Clear any pending interrupt flags
 	nRF24_ClearIRQFlags();
-
 	// Deassert CSN pin (chip release)
 	nRF24_CSN_H();
 }
 
 // Check if the nRF24L01 present
-// return:
-//   1 - nRF24L01 is online and responding
-//   0 - received sequence differs from original
-uint8_t nRF24_Check(void) {
+// return: nRF24_StatusTypeDef
+//   nRF24_Online - nRF24L01 is online and responding
+//   nRF24_Offline - received sequence differs from original
+nRF24_StatusTypeDef nRF24_Check(void) {
+
 	uint8_t rxbuf[5];
 	uint8_t i;
 	uint8_t *ptr = (uint8_t *)nRF24_TEST_ADDR;
@@ -123,16 +136,16 @@ uint8_t nRF24_Check(void) {
 
 	// Compare buffers, return error on first mismatch
 	for (i = 0; i < 5; i++) {
-		if (rxbuf[i] != *ptr++) return 0;
+		if (rxbuf[i] != *ptr++) return nRF24_Offline;
 	}
 
-	return 1;
+	return nRF24_Online;
 }
 
 // Control transceiver power mode
 // input:
 //   mode - new state of power mode, one of nRF24_PWR_xx values
-void nRF24_SetPowerMode(uint8_t mode) {
+static void nRF24_SetPowerMode(uint8_t mode) {
 	uint8_t reg;
 
 	reg = nRF24_ReadReg(nRF24_REG_CONFIG);
@@ -151,7 +164,7 @@ void nRF24_SetPowerMode(uint8_t mode) {
 // Set transceiver operational mode
 // input:
 //   mode - operational mode, one of nRF24_MODE_xx values
-void nRF24_SetOperationalMode(uint8_t mode) {
+static void nRF24_SetOperationalMode(uint8_t mode) {
 	uint8_t reg;
 
 	// Configure PRIM_RX bit of the CONFIG register
@@ -164,7 +177,7 @@ void nRF24_SetOperationalMode(uint8_t mode) {
 // Set transceiver DynamicPayloadLength feature for all the pipes
 // input:
 //   mode - status, one of nRF24_DPL_xx values
-void nRF24_SetDynamicPayloadLength(uint8_t mode) {
+static void nRF24_SetDPL_Mode(uint8_t mode) {
 	uint8_t reg;
 	reg  = nRF24_ReadReg(nRF24_REG_FEATURE);
 	if(mode) {
@@ -179,7 +192,7 @@ void nRF24_SetDynamicPayloadLength(uint8_t mode) {
 // Enables Payload With Ack. NB Refer to the datasheet for proper retransmit timing.
 // input:
 //   mode - status, 1 or 0
-void nRF24_SetPayloadWithAck(uint8_t mode) {
+ void nRF24_SetPayloadWithAck(uint8_t mode) {
 	uint8_t reg;
 	reg  = nRF24_ReadReg(nRF24_REG_FEATURE);
 	if(mode) {
@@ -194,7 +207,7 @@ void nRF24_SetPayloadWithAck(uint8_t mode) {
 //   scheme - CRC scheme, one of nRF24_CRC_xx values
 // note: transceiver will forcibly turn on the CRC in case if auto acknowledgment
 //       enabled for at least one RX pipe
-void nRF24_SetCRCScheme(uint8_t scheme) {
+static void nRF24_SetCRCScheme(uint8_t scheme) {
 	uint8_t reg;
 
 	// Configure EN_CRC[3] and CRCO[2] bits of the CONFIG register
@@ -209,7 +222,7 @@ void nRF24_SetCRCScheme(uint8_t scheme) {
 //   channel - radio frequency channel, value from 0 to 127
 // note: frequency will be (2400 + channel)MHz
 // note: PLOS_CNT[7:4] bits of the OBSERVER_TX register will be reset
-void nRF24_SetRFChannel(uint8_t channel) {
+static void nRF24_SetRFChannel(uint8_t channel) {
 	nRF24_WriteReg(nRF24_REG_RF_CH, channel);
 }
 
@@ -218,7 +231,7 @@ void nRF24_SetRFChannel(uint8_t channel) {
 //   ard - auto retransmit delay, one of nRF24_ARD_xx values
 //   arc - count of auto retransmits, value form 0 to 15
 // note: zero arc value means that the automatic retransmission disabled
-void nRF24_SetAutoRetr(uint8_t ard, uint8_t arc) {
+static void nRF24_SetAutoRetr(uint8_t ard, uint8_t arc) {
 	// Set auto retransmit settings (SETUP_RETR register)
 	nRF24_WriteReg(nRF24_REG_SETUP_RETR, (uint8_t)((ard << 4) | (arc & nRF24_MASK_RETR_ARC)));
 }
@@ -227,7 +240,7 @@ void nRF24_SetAutoRetr(uint8_t ard, uint8_t arc) {
 // input:
 //   addr_width - RX/TX address field width, value from 3 to 5
 // note: this setting is common for all pipes
-void nRF24_SetAddrWidth(uint8_t addr_width) {
+static void nRF24_SetAddrWidth(uint8_t addr_width) {
 	nRF24_WriteReg(nRF24_REG_SETUP_AW, addr_width - 2);
 }
 
@@ -241,7 +254,7 @@ void nRF24_SetAddrWidth(uint8_t addr_width) {
 //       other bytes of address equals to pipe1
 // note: for pipes[2..5] only first byte of address will be written because
 //       pipes 1-5 share the four most significant address bytes
-void nRF24_SetAddr(uint8_t pipe, const uint8_t *addr) {
+static void nRF24_SetAddr(uint8_t pipe, const uint8_t *addr) {
 	uint8_t addr_width;
 
 	// RX_ADDR_Px register
@@ -276,7 +289,7 @@ void nRF24_SetAddr(uint8_t pipe, const uint8_t *addr) {
 // Configure RF output power in TX mode
 // input:
 //   tx_pwr - RF output power, one of nRF24_TXPWR_xx values
-void nRF24_SetTXPower(uint8_t tx_pwr) {
+static void nRF24_SetTXPower(uint8_t tx_pwr) {
 	uint8_t reg;
 
 	// Configure RF_PWR[2:1] bits of the RF_SETUP register
@@ -289,7 +302,7 @@ void nRF24_SetTXPower(uint8_t tx_pwr) {
 // Configure transceiver data rate
 // input:
 //   data_rate - data rate, one of nRF24_DR_xx values
-void nRF24_SetDataRate(uint8_t data_rate) {
+static void nRF24_SetDataRate(uint8_t data_rate) {
 	uint8_t reg;
 
 	// Configure RF_DR_LOW[5] and RF_DR_HIGH[3] bits of the RF_SETUP register
@@ -304,7 +317,7 @@ void nRF24_SetDataRate(uint8_t data_rate) {
 //   pipe - number of the RX pipe, value from 0 to 5
 //   aa_state - state of auto acknowledgment, one of nRF24_AA_xx values
 //   payload_len - payload length in bytes
-void nRF24_SetRXPipe(uint8_t pipe, uint8_t aa_state, uint8_t payload_len) {
+static void nRF24_SetRXPipe(uint8_t pipe, uint8_t aa_state, uint8_t payload_len) {
 	uint8_t reg;
 
 	// Enable the specified pipe (EN_RXADDR register)
@@ -336,33 +349,23 @@ void nRF24_ClosePipe(uint8_t pipe) {
 	nRF24_WriteReg(nRF24_REG_EN_RXADDR, reg);
 }
 
-// Enable the auto retransmit (a.k.a. enhanced ShockBurst) for the specified RX pipe
+// Enable the auto retransmit (a.k.a. enhanced ShockBurst) for all RX pipes
 // input:
-//   pipe - number of the RX pipe, value from 0 to 5
-void nRF24_EnableAA(uint8_t pipe) {
-	uint8_t reg;
+//
+static void nRF24_EnableAA() {
 
-	// Set bit in EN_AA register
-	reg  = nRF24_ReadReg(nRF24_REG_EN_AA);
-	reg |= (1 << pipe);
-	nRF24_WriteReg(nRF24_REG_EN_AA, reg);
+	nRF24_WriteReg(nRF24_REG_EN_AA, 0x3F);
 }
 
-// Disable the auto retransmit (a.k.a. enhanced ShockBurst) for one or all RX pipes
+// Disable the auto retransmit (a.k.a. enhanced ShockBurst) for all RX pipes
 // input:
-//   pipe - number of the RX pipe, value from 0 to 5, any other value will disable AA for all RX pipes
-void nRF24_DisableAA(uint8_t pipe) {
-	uint8_t reg;
+//
+static void nRF24_DisableAA() {
 
-	if (pipe > 5) {
 		// Disable Auto-ACK for ALL pipes
 		nRF24_WriteReg(nRF24_REG_EN_AA, 0x00);
-	} else {
-		// Clear bit in the EN_AA register
-		reg  = nRF24_ReadReg(nRF24_REG_EN_AA);
-		reg &= ~(1 << pipe);
-		nRF24_WriteReg(nRF24_REG_EN_AA, reg);
-	}
+
+
 }
 
 // Get value of the STATUS register
@@ -379,20 +382,20 @@ uint8_t nRF24_GetIRQFlags(void) {
 
 // Get status of the RX FIFO
 // return: one of the nRF24_STATUS_RXFIFO_xx values
-uint8_t nRF24_GetStatus_RXFIFO(void) {
+nRF24_STATUS_RXFIFO nRF24_GetStatus_RXFIFO(void) {
 	return (nRF24_ReadReg(nRF24_REG_FIFO_STATUS) & nRF24_MASK_RXFIFO);
 }
 
 // Get status of the TX FIFO
 // return: one of the nRF24_STATUS_TXFIFO_xx values
 // note: the TX_REUSE bit ignored
-uint8_t nRF24_GetStatus_TXFIFO(void) {
+nRF24_STATUS_TXFIFO nRF24_GetStatus_TXFIFO(void) {
 	return ((nRF24_ReadReg(nRF24_REG_FIFO_STATUS) & nRF24_MASK_TXFIFO) >> 4);
 }
 
 // Get pipe number for the payload available for reading from RX FIFO
 // return: pipe number or 0x07 if the RX FIFO is empty
-uint8_t nRF24_GetRXSource(void) {
+nRF24_RXResult nRF24_GetRXSource(void) {
 	return ((nRF24_ReadReg(nRF24_REG_STATUS) & nRF24_MASK_RX_P_NO) >> 1);
 }
 
@@ -519,4 +522,215 @@ void nRF24_WriteAckPayload(nRF24_RXResult pipe, char *payload, uint8_t length) {
 	nRF24_CSN_H();
 
 }
+
+
+/*-------------------------------------------------------------------------------*/
+
+
+/**
+ * @brief  nRF24_Init : Init the nRF24 Module with the configuration pattern in the handler struct
+ * @param  nRF24_HandleTypeDef* : pointer to the handler struct
+ * @retval void :
+ * @note
+ */
+void nRF24_Init(nRF24_HandleTypeDef* ptr){
+
+	SPI_Instance = ptr->SPI_Instance;
+
+	if (ptr->RFChannel > 0 && ptr->RFChannel < 126)
+	{
+		nRF24_SetRFChannel(ptr->RFChannel);
+	}
+	else
+	{
+		nRF24_SetRFChannel(nRF24_DEFAULT_RF_CHANNEL);
+	}
+	if (ptr->AutoAck == nRF24_AA_ON)
+	{
+		nRF24_EnableAA();
+		nRF24_SetAutoRetr(nRF24_DEFAULT_RETX_DELAY, nRF24_DEFAULT_RETX_COUNT);
+	}
+	else
+	{
+		nRF24_DisableAA();
+		nRF24_WriteReg(nRF24_REG_SETUP_RETR, 0x00);
+	}
+
+	if (ptr->addressWidth >= 3 && ptr->addressWidth <= 5)
+	{
+	nRF24_SetAddrWidth(ptr->addressWidth);
+	}
+	else
+	{
+		nRF24_SetAddrWidth(nRF24_DEFAULT_ADDR_WIDTH);
+	}
+
+	nRF24_SetTXPower(ptr->TxPwr);
+	nRF24_SetDataRate(ptr->DataRate);
+	nRF24_SetCRCScheme(ptr->CRCScheme);
+	nRF24_SetDPL_Mode(ptr->DPLMode);
+
+
+}
+
+/**
+ * @brief  nRF24_TransmitPacket : Function to transmit data packet
+ * @param  uint8_t*, uint8_t :    pBuf - pointer to the buffer with data to transmit
+	  	  	  	  	  	  	  	  	  length - length of the data buffer in bytes
+ * @retval nRF24_TXResult :		  one of nRF24_TXResult values
+ * @note
+ */
+nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length, uint32_t timeOut ) {
+
+
+	uint8_t status;
+	uint8_t isTimeOut = 1;
+
+	// Deassert the CE pin (in case if it still high)
+	nRF24_CE_L();
+
+	// Transfer a data from the specified buffer to the TX FIFO
+	nRF24_WritePayload(pBuf, length);
+
+	// Start a transmission by asserting CE pin (must be held at least 10us)
+	nRF24_CE_H();
+
+	// Poll the transceiver status register until one of the following flags will be set:
+	//   TX_DS  - means the packet has been transmitted
+	//   MAX_RT - means the maximum number of TX retransmits happened
+	// note: this solution is far from perfect, better to use IRQ instead of polling the status
+	volatile uint32_t startTick = HAL_GetTick();
+	do {
+		status = nRF24_GetStatus();
+		if (status & (nRF24_FLAG_TX_DS | nRF24_FLAG_MAX_RT)) {
+			isTimeOut = 0;
+			break;
+		}
+	} while (HAL_GetTick() - startTick < timeOut);
+
+	// Deassert the CE pin (Standby-II --> Standby-I)
+	nRF24_CE_L();
+
+	if (isTimeOut) {
+		// Timeout
+		return nRF24_TX_TIMEOUT;
+	}
+
+
+	// Clear pending IRQ flags
+    nRF24_ClearIRQFlags();
+
+	if (status & nRF24_FLAG_MAX_RT) {
+		// Auto retransmit counter exceeds the programmed maximum limit (FIFO is not removed)
+		return nRF24_TX_MAXRT;
+	}
+
+	if (status & nRF24_FLAG_TX_DS) {
+		// Successful transmission
+		return nRF24_TX_SUCCESS;
+	}
+
+	// Some undefined error happened, a payload remains in the TX FIFO, flush it
+	nRF24_FlushTX();
+
+	return nRF24_TX_ERROR;
+}
+
+/**
+ * @brief  nRF24_RecievePacket : Receive a data packet
+ * @param  uint8_t*, uint8_t, uint32_t : 	 buffer for the data , length of the data ,
+ * 											 time to wait if the RX FIFO is empty
+ * @retval nRF24_RXResult :		one of the nRF24_RX_xx values
+ * @note
+ */
+nRF24_RXResult nRF24_ReceivePacket(uint8_t *pBuf, uint8_t length, uint32_t timeOut){
+
+	nRF24_RXResult result = nRF24_RX_EMPTY;
+	volatile uint32_t startTick = HAL_GetTick();
+	do {
+
+		if (nRF24_IsAvailable()){
+			result = nRF24_ReadPayload(pBuf, &length);
+			nRF24_ClearIRQFlags();
+			break;
+		}
+
+	}while(HAL_GetTick() - startTick < timeOut);
+
+	return result;
+
+}
+
+
+
+/**
+ * @brief  nRF24_StartListening : Set the nRF24 in RX Mode
+ * @param  void :
+ * @retval void :
+ * @note
+ */
+void nRF24_StartListening(void){
+
+	// Assert the chip on Power up Mode
+	nRF24_SetPowerMode(nRF24_PWR_UP);
+	nRF24_SetOperationalMode(nRF24_MODE_RX);
+	nRF24_RX_ON();
+
+}
+
+/**
+ * @brief  nRF24_StartListening : Set the nRF24 in TX Mode
+ * @param  void :
+ * @retval void :
+ * @note
+ */
+void nRF24_StopListening(void){
+
+	nRF24_RX_OFF();
+	nRF24_SetOperationalMode(nRF24_MODE_TX);
+
+
+}
+
+/**
+ * @brief  nRF24_OpenTxPipe : Open Transmitting Pipe
+ * @param  uint8_t* :
+ * @retval void :
+ * @note
+ */
+void nRF24_OpenTxPipe(uint8_t* Address){
+
+	nRF24_SetAddr(nRF24_PIPETX, Address);
+
+}
+/**
+ * @brief  nRF24_OpenRxPipe : Open Receiving Pipe
+ * @param  uint8_t* :
+ * @retval void :
+ * @note
+ */
+void nRF24_OpenRxPipe( nRF24_PipeType pipe ,uint8_t* Address, uint8_t payloadLength){
+
+	nRF24_SetAddr(pipe, Address);
+	if(nRF24_ReadReg(nRF24_REG_EN_AA)){
+		nRF24_SetRXPipe(pipe, nRF24_AA_ON, payloadLength);
+	}
+	else {
+		nRF24_SetRXPipe(pipe, nRF24_AA_OFF, payloadLength);
+	}
+}
+
+/**
+ * @brief  nRF24_IsAvailable : check if there is data available to read in Rx Buffer
+ * @param  enclosing_method_arguments :
+ * @retval return_type : 	true if there is available data false if else.
+ * @note
+ */
+uint8_t nRF24_IsAvailable(){
+
+	return (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY );
+
+}
+
+
 
