@@ -12,7 +12,7 @@
 // The Number OF JoySticks To Be Used In The Project
 #define JOYSTICK_UNITS  1
 
-const JoyStick_obj JoyStick_CfgParam[JOYSTICK_UNITS] =
+JoyStick_obj JoyStick_CfgParam[JOYSTICK_UNITS] =
 {
     // JoyStick unit 1 Configurations
     {

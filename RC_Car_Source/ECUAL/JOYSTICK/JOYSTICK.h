@@ -22,8 +22,8 @@ typedef enum{
 typedef struct
 {
 	JS_SwStatus		JS_SWState;
-    uint16_t       JS_xVal;
-    uint16_t       JS_yVal;
+    uint16_t*       JS_xVal;
+    uint16_t*       JS_yVal;
     uint32_t       ADCx_CH;
     uint32_t       ADCy_CH;
 }JoyStick_obj;
@@ -33,6 +33,5 @@ typedef struct
 /*-----[ Prototypes For All Functions ]-----*/
 void JoyStick_Init(void);
 JoyStick_obj* JoyStick_getObj(uint8_t joystick_index);
-void JoyStick_Read(uint8_t joystick_index);
 
 #endif /* JOYSTICK_JOYSTICK_H_ */

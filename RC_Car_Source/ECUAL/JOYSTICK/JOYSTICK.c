@@ -13,31 +13,32 @@ void DMA_init(void);
 void ADC_init(void);
 static void Error_Handler(void);
 
-ADC_HandleTypeDef hadc1;
+ADC_HandleTypeDef hadc;
 DMA_HandleTypeDef hdma_adc;
 
 /* Configure the DMA buffer */
-uint32_t adc_buffer[JOYSTICK_UNITS<<1];
+uint16_t adc_buffer[JOYSTICK_UNITS<<1];
 
 void JoyStick_Init(void){
 	DMA_init();
 	ADC_init();
+
+	uint8_t bufferIndex = 0;
+
+	for(uint8_t i = 0 ; i < JOYSTICK_UNITS<<1;i++){
+
+		JoyStick_CfgParam[i].JS_xVal= &adc_buffer[bufferIndex++];
+		JoyStick_CfgParam[i].JS_yVal= &adc_buffer[bufferIndex++];
+	}
+
+
 	/* Start the ADC with DMA */
-	HAL_ADC_Start_DMA(&hadc1, adc_buffer, JOYSTICK_UNITS<<1);
+	HAL_ADC_Start_DMA(&hadc,(uint32_t*) adc_buffer, JOYSTICK_UNITS<<1);
 }
 
 JoyStick_obj* JoyStick_getObj(uint8_t joystick_index){
 	
 	return &JoyStick_CfgParam[joystick_index];
-}
-
-void JoyStick_Read(uint8_t joystick_index){
-	
-	if(joystick_index >= JOYSTICK_UNITS) return;
-	
-	uint8_t i = (joystick_index<<1)-1;
-	JoyStick_CfgParam[joystick_index].JS_xVal = adc_buffer[i];
-	JoyStick_CfgParam[joystick_index].JS_yVal = adc_buffer[i+1];
 }
 
 
@@ -76,14 +77,14 @@ void ADC_init(void){
 
   /** Common config
   */
-  hadc1.Instance = ADC1;
-  hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
-  hadc1.Init.ContinuousConvMode = ENABLE;
-  hadc1.Init.DiscontinuousConvMode = DISABLE;
-  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = JOYSTICK_UNITS << 1;
-  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  hadc.Instance = ADC1;
+  hadc.Init.ScanConvMode = ADC_SCAN_ENABLE;
+  hadc.Init.ContinuousConvMode = ENABLE;
+  hadc.Init.DiscontinuousConvMode = DISABLE;
+  hadc.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc.Init.NbrOfConversion = JOYSTICK_UNITS << 1;
+  if (HAL_ADC_Init(&hadc) != HAL_OK)
   {
 	Error_Handler();
   }
@@ -91,16 +92,17 @@ void ADC_init(void){
   /** Configure Regular Channel
   */
 
-  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5;
 
+  uint8_t rank = 1;
 
-  for (int i = 0; i < JOYSTICK_UNITS<<1;) {
+  for (uint8_t i = 0; i < JOYSTICK_UNITS<<1; i++) {
 	  sConfig.Channel = JoyStick_CfgParam[i].ADCx_CH;
-	  sConfig.Rank = ++i;
+	  sConfig.Rank = rank++;
 	  HAL_ADC_ConfigChannel(&hadc, &sConfig);
 
 	  sConfig.Channel = JoyStick_CfgParam[i].ADCy_CH;
-	  sConfig.Rank = ++i;
+	  sConfig.Rank = rank++;
 	  HAL_ADC_ConfigChannel(&hadc, &sConfig);
 	}
 
@@ -110,7 +112,7 @@ void ADC_init(void){
 
 
 // Calibrate The ADC On Power-Up For Better Accuracy
-	HAL_ADCEx_Calibration_Start(&hadc1);
+	HAL_ADCEx_Calibration_Start(&hadc);
 
 }
 static void Error_Handler(void)
