@@ -25,7 +25,7 @@ void JoyStick_Init(void){
 
 	uint8_t bufferIndex = 0;
 
-	for(uint8_t i = 0 ; i < JOYSTICK_UNITS<<1;i++){
+	for(uint8_t i = 0 ; i < JOYSTICK_UNITS;i++){
 
 		JoyStick_CfgParam[i].JS_xVal= &adc_buffer[bufferIndex++];
 		JoyStick_CfgParam[i].JS_yVal= &adc_buffer[bufferIndex++];
@@ -96,7 +96,7 @@ void ADC_init(void){
 
   uint8_t rank = 1;
 
-  for (uint8_t i = 0; i < JOYSTICK_UNITS<<1; i++) {
+  for (uint8_t i = 0; i < JOYSTICK_UNITS; i++) {
 	  sConfig.Channel = JoyStick_CfgParam[i].ADCx_CH;
 	  sConfig.Rank = rank++;
 	  HAL_ADC_ConfigChannel(&hadc, &sConfig);
