@@ -20,8 +20,9 @@ DMA_HandleTypeDef hdma_adc;
 uint16_t adc_buffer[JOYSTICK_UNITS<<1];
 
 void JoyStick_Init(void){
-	DMA_init();
 	ADC_init();
+	DMA_init();
+
 
 	uint8_t bufferIndex = 0;
 
