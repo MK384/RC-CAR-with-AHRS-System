@@ -382,24 +382,7 @@ void nRF24_ActivateFeatures(void);
  * @}
  */
 
-/**
- * @defgroup Default Values
- * @{
- */
 
-#define   	nRF24_DEFAULT_RF_CHANNEL		115
-
-#define   	nRF24_DEFAULT_RETX_DELAY		nRF24_ARD_250us
-
-#define   	nRF24_DEFAULT_RETX_COUNT		(uint8_t)0x5
-
-#define   	nRF24_DEFAULT_ADDR_WIDTH		(uint8_t)0x5
-
-
-
-/**
- * @}
- */
 
 
 #endif /* BOARD_HAL_DRIVERS_INC_NRF24_LL_H_ */

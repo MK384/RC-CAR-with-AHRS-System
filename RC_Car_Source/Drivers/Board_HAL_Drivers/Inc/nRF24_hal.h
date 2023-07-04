@@ -12,8 +12,28 @@
 
 
 // Low level functions (hardware depended)
-#include "Board_HAL_Drivers/Inc/nRF24_LL.h"
+#include "nRF24_LL.h"
 
+
+
+/**
+ * @defgroup Default Values
+ * @{
+ */
+
+#define   	nRF24_DEFAULT_RF_CHANNEL		115
+
+#define   	nRF24_DEFAULT_RETX_DELAY		nRF24_ARD_250us
+
+#define   	nRF24_DEFAULT_RETX_COUNT		(uint8_t)0x5
+
+#define   	nRF24_DEFAULT_ADDR_WIDTH		(uint8_t)0x5
+
+
+
+/**
+ * @}
+ */
 
 
 /**
@@ -385,7 +405,7 @@ nRF24_StatusTypeDef nRF24_Check(void);
 * Ret_Brief:	None
 * @note:	the power must be set on before any operation!
 */
-static void nRF24_SetPowerMode(nRF24_PWR_ModeType mode);
+void nRF24_SetPowerMode(nRF24_PWR_ModeType mode);
 
 /**
  * @}

@@ -9,8 +9,8 @@
 
 // Functions to manage the nRF24L01+ transceiver
 
-#include <Board_HAL_Drivers/Inc/nRF24_HAL.h>
-#include <Board_HAL_Drivers/Inc/nRF24_LL.h>
+#include "nRF24_HAL.h"
+#include "nRF24_LL.h"
 
 
 
@@ -145,7 +145,7 @@ nRF24_StatusTypeDef nRF24_Check(void) {
 // Control transceiver power mode
 // input:
 //   mode - new state of power mode, one of nRF24_PWR_xx values
-static void nRF24_SetPowerMode(uint8_t mode) {
+void nRF24_SetPowerMode(nRF24_PWR_ModeType mode) {
 	uint8_t reg;
 
 	reg = nRF24_ReadReg(nRF24_REG_CONFIG);
