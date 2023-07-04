@@ -21,6 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "mpu6050.h"
+#include "stdio.h"
 
 /* USER CODE END Includes */
 
@@ -40,6 +42,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+I2C_HandleTypeDef hi2c1;
 
 /* USER CODE BEGIN PV */
 
@@ -48,12 +51,17 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+SD_MPU6050 mpu1;
+
+int16_t g_x , g_y , g_z , a_x , a_y , a_z;
 
 /* USER CODE END 0 */
 
@@ -85,7 +93,24 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+
+  SD_MPU6050_Result result = SD_MPU6050_Init(&hi2c1,&mpu1,SD_MPU6050_Device_0,SD_MPU6050_Accelerometer_8G, SD_MPU6050_Gyroscope_500s );
+
+  HAL_Delay(500);
+
+  if(result == SD_MPU6050_Result_Ok)
+  {
+	  printf("MPU6050 response OK !");
+  }
+  else
+  {
+	  printf("MPU6050 response NOT OK !!!");
+  }
+
+  SD_MPU6050_SetLowPassFilter(&hi2c1, &mpu1, SD_MPU6050_Bandwidth_10_Hz);
+  SD_MPU6050_Calibrate(&hi2c1, &mpu1, 1000);
 
   /* USER CODE END 2 */
 
@@ -94,6 +119,21 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+	  SD_MPU6050_ReadAll(&hi2c1,&mpu1);
+
+	   a_x = (int16_t) mpu1.Accelerometer_X;
+	   a_y = (int16_t) mpu1.Accelerometer_Y;
+	   a_z = (int16_t) mpu1.Accelerometer_Z;
+
+	   g_x = (int16_t) mpu1.Gyroscope_X;
+	   g_y = (int16_t) mpu1.Gyroscope_Y;
+	   g_z = (int16_t) mpu1.Gyroscope_Z;
+
+	  float temperature = mpu1.Temperature;
+
+	  HAL_Delay(100);
 
     /* USER CODE BEGIN 3 */
   }
@@ -147,6 +187,40 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
+
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.ClockSpeed = 100000;
+  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -166,6 +240,18 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+int _write(int file, char *ptr, int len)
+{
+  (void)file;
+  int DataIdx;
+
+  for (DataIdx = 0; DataIdx < len; DataIdx++)
+  {
+    ITM_SendChar(*ptr++);
+  }
+  return len;
+}
 
 /* USER CODE END 4 */
 
