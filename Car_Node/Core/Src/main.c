@@ -61,7 +61,7 @@ static void MX_I2C1_Init(void);
 
 SD_MPU6050 mpu1;
 
-int16_t g_x , g_y , g_z , a_x , a_y , a_z;
+float g_x , g_y , g_z , a_x , a_y , a_z , temperature;
 
 /* USER CODE END 0 */
 
@@ -96,7 +96,8 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
-  SD_MPU6050_Result result = SD_MPU6050_Init(&hi2c1,&mpu1,SD_MPU6050_Device_0,SD_MPU6050_Accelerometer_8G, SD_MPU6050_Gyroscope_500s );
+  SD_MPU6050_Result result = SD_MPU6050_Init( &hi2c1,&mpu1,SD_MPU6050_Device_0,
+		  SD_MPU6050_Accelerometer_8G, SD_MPU6050_Gyroscope_250s , SD_MPU6050_DataRate_LPF_1KHz  );
 
   HAL_Delay(500);
 
@@ -110,7 +111,7 @@ int main(void)
   }
 
   SD_MPU6050_SetLowPassFilter(&hi2c1, &mpu1, SD_MPU6050_Bandwidth_10_Hz);
-  SD_MPU6050_Calibrate(&hi2c1, &mpu1, 1000);
+  SD_MPU6050_Calibrate(&hi2c1, &mpu1, 10);
 
   /* USER CODE END 2 */
 
@@ -123,17 +124,17 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  SD_MPU6050_ReadAll(&hi2c1,&mpu1);
 
-	   a_x = (int16_t) mpu1.Accelerometer_X;
-	   a_y = (int16_t) mpu1.Accelerometer_Y;
-	   a_z = (int16_t) mpu1.Accelerometer_Z;
+	   a_x =  mpu1.Accelerometer_X;
+	   a_y =  mpu1.Accelerometer_Y;
+	   a_z =  mpu1.Accelerometer_Z;
 
-	   g_x = (int16_t) mpu1.Gyroscope_X;
-	   g_y = (int16_t) mpu1.Gyroscope_Y;
-	   g_z = (int16_t) mpu1.Gyroscope_Z;
+	   g_x =  mpu1.Gyroscope_X;
+	   g_y =  mpu1.Gyroscope_Y;
+	   g_z =  mpu1.Gyroscope_Z;
 
-	  float temperature = mpu1.Temperature;
+	  temperature = mpu1.Temperature;
 
-	  HAL_Delay(100);
+	  HAL_Delay(10);
 
     /* USER CODE BEGIN 3 */
   }

@@ -36,7 +36,7 @@ extern "C" {
 #endif
 
 /**
- * @brief  Data rates predefined constants
+ * @brief  Data rates while LPF is OFF predefined constants
  * @{
  */
 #define SD_MPU6050_DataRate_8KHz       0   /*!< Sample rate set to 8 kHz */
@@ -50,6 +50,21 @@ extern "C" {
 /**
  * @}
  */
+
+/**
+ * @brief  Data rates while LPF is ON predefined constants
+ * @{
+ */
+#define SD_MPU6050_DataRate_LPF_1KHz       0   /*!< Sample rate set to 1 kHz */
+#define SD_MPU6050_DataRate_LPF_500Hz      1   /*!< Sample rate set to 500 Hz */
+#define SD_MPU6050_DataRate_LPF_330Hz      2   /*!< Sample rate set to 330 Hz */
+#define SD_MPU6050_DataRate_LPF_250Hz      3   /*!< Sample rate set to 1 kHz */
+#define SD_MPU6050_DataRate_LPF_200Hz      4  /*!< Sample rate set to 500 Hz */
+#define SD_MPU6050_DataRate_LPF_100Hz      9  /*!< Sample rate set to 100 Hz */
+/**
+ * @}
+ */
+
 
 /**
  * @}
@@ -179,7 +194,7 @@ typedef union {
  *            - SD_MPU6050_Result_t: Everything OK
  *            - Other member: in other cases
  */
-SD_MPU6050_Result SD_MPU6050_Init(I2C_HandleTypeDef* I2Cx,SD_MPU6050* DataStruct, SD_MPU6050_Device DeviceNumber, SD_MPU6050_Accelerometer AccelerometerSensitivity, SD_MPU6050_Gyroscope GyroscopeSensitivity);
+SD_MPU6050_Result SD_MPU6050_Init(I2C_HandleTypeDef* I2Cx,SD_MPU6050* DataStruct, SD_MPU6050_Device DeviceNumber, SD_MPU6050_Accelerometer AccelerometerSensitivity, SD_MPU6050_Gyroscope GyroscopeSensitivity, uint8_t DataRate);
 
 /**
  * @brief  Sets gyroscope sensitivity
