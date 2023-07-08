@@ -88,9 +88,9 @@
  */
 
 
-SD_MPU6050_Result SD_MPU6050_Init(I2C_HandleTypeDef* I2Cx,SD_MPU6050* DataStruct,
-		SD_MPU6050_Device DeviceNumber, SD_MPU6050_Accelerometer AccelerometerSensitivity,
-		SD_MPU6050_Gyroscope GyroscopeSensitivity, uint8_t DataRate)
+MPU6050_Result MPU6050_Init(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct,
+		MPU6050_Device DeviceNumber, MPU6050_Accelerometer AccelerometerSensitivity,
+		MPU6050_Gyroscope GyroscopeSensitivity, uint8_t DataRate)
 {
 
 	uint8_t regVal;
@@ -102,20 +102,20 @@ SD_MPU6050_Result SD_MPU6050_Init(I2C_HandleTypeDef* I2Cx,SD_MPU6050* DataStruct
 	/* Check if device is connected */
 	if(HAL_I2C_IsDeviceReady(I2Cx,DevAddress, 3 ,100))
 	{
-				return SD_MPU6050_Result_DeviceNotConnected;
+				return MPU6050_Result_DeviceNotConnected;
 	}
 	/* Check who am I */
 	//------------------
 		if(HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_WHO_AM_I,	 REG_SIZE, &regVal, REG_SIZE, 1000))
 		{
-			return SD_MPU6050_Result_Error;
+			return MPU6050_Result_Error;
 		}
 
 		/* Checking */
 		if (regVal != I_AM_MPU6050)
 		{
 				/* Return error */
-				return SD_MPU6050_Result_DeviceInvalid;
+				return MPU6050_Result_DeviceInvalid;
 		}
 	//------------------------------------------------------------------------------------
 
@@ -127,25 +127,33 @@ SD_MPU6050_Result SD_MPU6050_Init(I2C_HandleTypeDef* I2Cx,SD_MPU6050* DataStruct
 		/* Try to transmit via I2C */
 		if(HAL_I2C_Mem_Write(I2Cx, DevAddress, MPU6050_PWR_MGMT_1, REG_SIZE, &regVal, REG_SIZE, 1000))
 		{
-					return SD_MPU6050_Result_Error;
+					return MPU6050_Result_Error;
 		}
 	//------------------
 
 
-	/* Set sample rate to 1kHz */
-	SD_MPU6050_SetDataRate(I2Cx,DataStruct, DataRate);
-
+	/* Set sample rate  */
+	if (MPU6050_SetDataRate(I2Cx,DataStruct, DataRate))
+	{
+				return MPU6050_Result_Error;
+	}
 	/* Config accelerometer */
-	SD_MPU6050_SetAccelerometer(I2Cx,DataStruct, AccelerometerSensitivity);
+	if (MPU6050_setFullScaleAccelRange(I2Cx,DataStruct, AccelerometerSensitivity))
+	{
+				return MPU6050_Result_Error;
+	}
 
 	/* Config Gyroscope */
-	SD_MPU6050_SetGyroscope(I2Cx,DataStruct, GyroscopeSensitivity);
+	if(MPU6050_setFullScaleGyroRange(I2Cx,DataStruct, GyroscopeSensitivity))
+	{
+				return MPU6050_Result_Error;
+	}
 
 	/* Return OK */
-	return SD_MPU6050_Result_Ok;
+	return MPU6050_Result_Ok;
 }
 
-SD_MPU6050_Result SD_MPU6050_SetDataRate(I2C_HandleTypeDef* I2Cx,SD_MPU6050* DataStruct, uint8_t rate)
+MPU6050_Result MPU6050_SetDataRate(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct, uint8_t rate)
 {
 	uint8_t regVal = rate;
 	uint16_t DevAddress = (uint16_t) DataStruct->Address;
@@ -154,135 +162,88 @@ SD_MPU6050_Result SD_MPU6050_SetDataRate(I2C_HandleTypeDef* I2Cx,SD_MPU6050* Dat
 	/* Set data sample rate */
 	if (HAL_I2C_Mem_Write(I2Cx, DevAddress, MPU6050_SMPLRT_DIV, REG_SIZE, &regVal, REG_SIZE, 1000))
 	{
-				return SD_MPU6050_Result_Error;
+				return MPU6050_Result_Error;
 	}
 
 	/*Assert the value*/
 	if (HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_SMPLRT_DIV, REG_SIZE, &regVal, REG_SIZE, 1000))
 	{
-				return SD_MPU6050_Result_Error;
+				return MPU6050_Result_Error;
 	}
 
 	if (regVal == rate){
 		/* Return OK */
-		return SD_MPU6050_Result_Ok;
+		return MPU6050_Result_Ok;
 	}
 	else{
 
 		// return unknown error
-		return SD_MPU6050_Result_Error;
+		return MPU6050_Result_Error;
 	}
 }
 
-SD_MPU6050_Result SD_MPU6050_SetAccelerometer(I2C_HandleTypeDef* I2Cx,SD_MPU6050* DataStruct, SD_MPU6050_Accelerometer AccelerometerSensitivity)
+MPU6050_Result MPU6050_setFullScaleAccelRange(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct, MPU6050_Accelerometer AccelerometerRange)
 {
 	uint8_t regVal;
 	uint8_t DevAddress = DataStruct->Address;
 
-	/* get the register content */
-	if(HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_ACCEL_CONFIG, REG_SIZE, &regVal, REG_SIZE, 1000))
-	{
-				return SD_MPU6050_Result_Error;
-	}
 
 	/* Config accelerometer : modify only required fields*/
-	regVal = (regVal & 0b11100111) | ((uint8_t) AccelerometerSensitivity << 3);
+	regVal = (uint8_t) (AccelerometerRange << 3);
 
 	if (HAL_I2C_Mem_Write(I2Cx, DevAddress, MPU6050_ACCEL_CONFIG, REG_SIZE, &regVal, REG_SIZE, 1000))
 	{
-				return SD_MPU6050_Result_Error;
+				return MPU6050_Result_Error;
 	}
 
 
 	/*Assert the written value*/
 	if (HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_ACCEL_CONFIG, REG_SIZE, &regVal, REG_SIZE, 1000))
 	 {
-			return SD_MPU6050_Result_Error;
+			return MPU6050_Result_Error;
 	 }
 
-	if ((regVal & 0b00011000) == ((uint8_t) AccelerometerSensitivity << 3) ){
-
-		/* Set sensitivities for multiplying gyro and accelerometer data */
-		switch (AccelerometerSensitivity) {
-			case SD_MPU6050_Accelerometer_2G:
-				DataStruct->Acce_Mult = (float)1 / MPU6050_ACCE_SENS_2;
-				break;
-			case SD_MPU6050_Accelerometer_4G:
-				DataStruct->Acce_Mult = (float)1 / MPU6050_ACCE_SENS_4;
-				break;
-			case SD_MPU6050_Accelerometer_8G:
-				DataStruct->Acce_Mult = (float)1 / MPU6050_ACCE_SENS_8;
-				break;
-			case SD_MPU6050_Accelerometer_16G:
-				DataStruct->Acce_Mult = (float)1 / MPU6050_ACCE_SENS_16;
-				break;
-			default:
-				break;
-			}
+	if (regVal == (uint8_t) (AccelerometerRange << 3) ){
 
 		// Return OK
-		return SD_MPU6050_Result_Ok;
+		return MPU6050_Result_Ok;
 	}else{
 		// return unknown error
-		return SD_MPU6050_Result_Error;
+		return MPU6050_Result_Error;
 	}
 
 }
 
-SD_MPU6050_Result SD_MPU6050_SetGyroscope(I2C_HandleTypeDef* I2Cx,SD_MPU6050* DataStruct, SD_MPU6050_Gyroscope GyroscopeSensitivity)
+MPU6050_Result MPU6050_setFullScaleGyroRange(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct, MPU6050_Gyroscope GyroscopeRange)
 {
 	uint8_t regVal;
 	uint8_t DevAddress = DataStruct->Address;
 
 
-	/* get the register content */
-	if(HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_GYRO_CONFIG, REG_SIZE, &regVal, REG_SIZE, 1000))
-	{
-				return SD_MPU6050_Result_Error;
-	}
-
 	/* Config gyroscope : modify only required fields*/
-	regVal = (regVal & 0b11100111) | ((uint8_t)GyroscopeSensitivity << 3);
+	regVal =  (uint8_t) (GyroscopeRange << 3);
 	if (HAL_I2C_Mem_Write(I2Cx, DevAddress, MPU6050_GYRO_CONFIG, REG_SIZE, &regVal, REG_SIZE, 1000))
 	{
-				return SD_MPU6050_Result_Error;
+				return MPU6050_Result_Error;
 	}
 
 	/*Assert the written value*/
 	if (HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_GYRO_CONFIG, REG_SIZE, &regVal, REG_SIZE, 1000))
 	 {
-			return SD_MPU6050_Result_Error;
+			return MPU6050_Result_Error;
 	 }
 
-	if ((regVal & 0b00011000) == ((uint8_t) GyroscopeSensitivity << 3) ){
-
-		/* Set sensitivities for multiplying gyro and accelerometer data */
-		switch (GyroscopeSensitivity) {
-				case SD_MPU6050_Gyroscope_250s:
-					DataStruct->Gyro_Mult = (float)1 / MPU6050_GYRO_SENS_250;
-					break;
-				case SD_MPU6050_Gyroscope_500s:
-					DataStruct->Gyro_Mult = (float)1 / MPU6050_GYRO_SENS_500;
-					break;
-				case SD_MPU6050_Gyroscope_1000s:
-					DataStruct->Gyro_Mult = (float)1 / MPU6050_GYRO_SENS_1000;
-					break;
-				case SD_MPU6050_Gyroscope_2000s:
-					DataStruct->Gyro_Mult = (float)1 / MPU6050_GYRO_SENS_2000;
-					break;
-				default:
-					break;
-			}
+	if (regVal  == (uint8_t) (GyroscopeRange << 3) ){
 
 		// Return OK
-		return SD_MPU6050_Result_Ok;
+		return MPU6050_Result_Ok;
 	}else{
 		// return unknown error
-		return SD_MPU6050_Result_Error;
+		return MPU6050_Result_Error;
 	}
 }
 
-SD_MPU6050_Result SD_MPU6050_SetLowPassFilter(I2C_HandleTypeDef* I2Cx,SD_MPU6050* DataStruct, SD_MPU6050_Bandwidth bw){
+MPU6050_Result MPU6050_SetLowPassFilter(I2C_HandleTypeDef* I2Cx, MPU6050* DataStruct, MPU6050_DLPF_BW bw){
 
 	uint8_t regVal;
 	uint8_t DevAddress = DataStruct->Address;
@@ -290,7 +251,7 @@ SD_MPU6050_Result SD_MPU6050_SetLowPassFilter(I2C_HandleTypeDef* I2Cx,SD_MPU6050
 	/* get the register content */
 	if(HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_CONFIG, REG_SIZE, &regVal, REG_SIZE, 1000))
 	{
-				return SD_MPU6050_Result_Error;
+				return MPU6050_Result_Error;
 	}
 
 	/* Config gyroscope : modify only required fields*/
@@ -298,145 +259,114 @@ SD_MPU6050_Result SD_MPU6050_SetLowPassFilter(I2C_HandleTypeDef* I2Cx,SD_MPU6050
 
 	if (HAL_I2C_Mem_Write(I2Cx, DevAddress, MPU6050_CONFIG, REG_SIZE, &regVal, REG_SIZE, 1000))
 	{
-				return SD_MPU6050_Result_Error;
+				return MPU6050_Result_Error;
 	}
 
 	/*Assert the written value*/
 	 if (HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_CONFIG, REG_SIZE, &regVal, REG_SIZE, 1000))
 	 {
-			return SD_MPU6050_Result_Error;
+			return MPU6050_Result_Error;
 	 }
 
 
 	if ( (regVal & 0b00000111) == ((uint8_t) bw) ){
 	/* Return OK */
-	return SD_MPU6050_Result_Ok;}
+	return MPU6050_Result_Ok;}
 	else{
 		// return unknown error
-		return SD_MPU6050_Result_Error;
+		return MPU6050_Result_Error;
 	}
 }
 
-SD_MPU6050_Result SD_MPU6050_ReadAccelerometer(I2C_HandleTypeDef* I2Cx,SD_MPU6050* DataStruct)
+
+MPU6050_Result MPU6050_getAcceleration(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct)
 {
 	uint8_t data[6];
 	uint8_t DevAddress = DataStruct->Address;
 
 	/* Read accelerometer data */
 	if (HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_ACCEL_XOUT_H, 6, data, 6, 1000)){
-		return SD_MPU6050_Result_Error;
+		return MPU6050_Result_Error;
 	}
 
 	/* Format */
-	DataStruct->Accelerometer_X = ((float)(data[0] << 8 | data[1]) * DataStruct->Acce_Mult) - DataStruct->Acce_Calibrate[0];
-	DataStruct->Accelerometer_Y = ((float)(data[2] << 8 | data[3]) * DataStruct->Acce_Mult) - DataStruct->Acce_Calibrate[1];
-	DataStruct->Accelerometer_Z = ((float)(data[4] << 8 | data[5]) * DataStruct->Acce_Mult) - DataStruct->Acce_Calibrate[2];
+	DataStruct->Accelerometer_X = (data[0] << 8 | data[1]) ;
+	DataStruct->Accelerometer_Y = (data[2] << 8 | data[3]) ;
+	DataStruct->Accelerometer_Z = (data[4] << 8 | data[5]) ;
 
 	/* Return OK */
-	return SD_MPU6050_Result_Ok;
+	return MPU6050_Result_Ok;
 }
-SD_MPU6050_Result SD_MPU6050_ReadGyroscope(I2C_HandleTypeDef* I2Cx,SD_MPU6050* DataStruct)
+
+MPU6050_Result MPU6050_getRotation(I2C_HandleTypeDef* I2Cx, MPU6050* DataStruct)
 {
 	uint8_t data[6];
 	uint8_t DevAddress = DataStruct->Address;
 
 	/* Read gyroscope data */
 	if (HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_GYRO_XOUT_H, 6, data, 6, 1000)){
-		return SD_MPU6050_Result_Error;
+		return MPU6050_Result_Error;
 	}
 
 	/* Format */
-	DataStruct->Gyroscope_X = ((float)(data[0] << 8 | data[1]) * DataStruct->Gyro_Mult)  - DataStruct->Gyro_Calibrate[0];
-	DataStruct->Gyroscope_Y = ((float)(data[2] << 8 | data[3]) * DataStruct->Gyro_Mult)  - DataStruct->Gyro_Calibrate[1];
-	DataStruct->Gyroscope_Z = ((float)(data[4] << 8 | data[5]) * DataStruct->Gyro_Mult)  - DataStruct->Gyro_Calibrate[2];
+	DataStruct->Gyroscope_X = (data[0] << 8 | data[1]);
+	DataStruct->Gyroscope_Y = (data[2] << 8 | data[3]);
+	DataStruct->Gyroscope_Z = (data[4] << 8 | data[5]);
 
 	/* Return OK */
-	return SD_MPU6050_Result_Ok;
+	return MPU6050_Result_Ok;
 }
-SD_MPU6050_Result SD_MPU6050_ReadTemperature(I2C_HandleTypeDef* I2Cx,SD_MPU6050* DataStruct)
+MPU6050_Result MPU6050_getTemperature(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct)
 {
 	uint8_t data[2];
-	int16_t temp;
 	uint8_t DevAddress = DataStruct->Address;
 
 	/* Read temperature */
 	if (HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_TEMP_OUT_H, 2, data, 2, 1000)){
-		return SD_MPU6050_Result_Error;
+		return MPU6050_Result_Error;
 	}
 
 	/* Format temperature */
-	temp = (data[0] << 8 | data[1]);
-	DataStruct->Temperature = (float)((int16_t)temp / (float)340.0 + (float)36.53);
+	DataStruct->Temperature = (float) (((float)(data[0] << 8 | data[1]))/(float)376.53);
 
 	/* Return OK */
-	return SD_MPU6050_Result_Ok;
+	return MPU6050_Result_Ok;
 }
-SD_MPU6050_Result SD_MPU6050_ReadAll(I2C_HandleTypeDef* I2Cx,SD_MPU6050* DataStruct)
+
+
+MPU6050_Result MPU6050_ReadAll(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct)
 {
 
+	uint8_t data[14];
+	uint8_t DevAddress = DataStruct->Address;
 
-	if  (SD_MPU6050_ReadAccelerometer(I2Cx, DataStruct))
+	/* Read full raw data, 14bytes */
+
+	if (HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_ACCEL_XOUT_H, 1, data, 14, 1000) != HAL_OK)
 	{
-		return SD_MPU6050_Result_Error;
+		return MPU6050_Result_Error;
 	}
 
-	if (SD_MPU6050_ReadGyroscope(I2Cx, DataStruct))
-	{
-		return SD_MPU6050_Result_Error;
-	}
+	/* Format accelerometer data */
+	DataStruct->Accelerometer_X = (int16_t)(data[0] << 8 | data[1]);
+	DataStruct->Accelerometer_Y = (int16_t)(data[2] << 8 | data[3]);
+	DataStruct->Accelerometer_Z = (int16_t)(data[4] << 8 | data[5]);
 
-	if (SD_MPU6050_ReadTemperature(I2Cx, DataStruct))
-	{
-		return SD_MPU6050_Result_Error;
-	}
+	/* Format temperature */
+	DataStruct->Temperature = (float) (((float)(data[6] << 8 | data[7]))/(float)376.53);
+
+	/* Format gyroscope data */
+	DataStruct->Gyroscope_X = (int16_t)(data[8] <<  8 | data[9]);
+	DataStruct->Gyroscope_Y = (int16_t)(data[10] << 8 | data[11]);
+	DataStruct->Gyroscope_Z = (int16_t)(data[12] << 8 | data[13]);
 
 	/* Return OK */
-	return SD_MPU6050_Result_Ok;
+	return MPU6050_Result_Ok;
+
 }
 
-SD_MPU6050_Result SD_MPU6050_Calibrate (I2C_HandleTypeDef* I2Cx,SD_MPU6050* DataStruct , uint32_t interval){
 
-
-	SD_MPU6050 Calib_Struct = *DataStruct;
-
-	for (int i = 0; i < 3; ++i) {
-
-		Calib_Struct.Acce_Calibrate[i] = 0.0f;
-		Calib_Struct.Gyro_Calibrate[i] = 0.0f;
-
-		DataStruct->Acce_Calibrate[i] = 0.0f;
-		DataStruct->Gyro_Calibrate[i] = 0.0f;
-	}
-
-
-	for (int var = 0; var < interval; ++var) {
-
-		if (SD_MPU6050_ReadAll(I2Cx, &Calib_Struct) != SD_MPU6050_Result_Ok)
-			return SD_MPU6050_Result_Error;
-
-		DataStruct->Acce_Calibrate[0] += Calib_Struct.Accelerometer_X;
-		DataStruct->Acce_Calibrate[1] += Calib_Struct.Accelerometer_Y;
-		DataStruct->Acce_Calibrate[2] += Calib_Struct.Accelerometer_Z;
-
-
-		DataStruct->Gyro_Calibrate[0] += Calib_Struct.Gyroscope_X;
-		DataStruct->Gyro_Calibrate[1] += Calib_Struct.Gyroscope_Y;
-		DataStruct->Gyro_Calibrate[2] += Calib_Struct.Gyroscope_Z;
-
-		HAL_Delay(10);
-	}
-
-	for (int i = 0; i < 3; ++i) {
-
-		DataStruct->Acce_Calibrate[i] /= (float) interval;
-
-		DataStruct->Gyro_Calibrate[i] /= (float) interval;
-
-	}
-	return SD_MPU6050_Result_Ok;
-}
-
-SD_MPU6050_Result SD_MPU6050_EnableInterrupts(I2C_HandleTypeDef* I2Cx,SD_MPU6050* DataStruct)
+MPU6050_Result MPU6050_EnableInterrupts(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct)
 {
 	uint8_t temp;
 	uint8_t reg[2] = {MPU6050_INT_ENABLE,0x21};
@@ -450,42 +380,107 @@ SD_MPU6050_Result SD_MPU6050_EnableInterrupts(I2C_HandleTypeDef* I2Cx,SD_MPU6050
 	/* Clear IRQ flag on any read operation */
 	while(HAL_I2C_Master_Transmit(Handle, (uint16_t)address, &mpu_reg, 1, 1000) != HAL_OK);
 
-	while(HAL_I2C_Master_Receive(Handle, (uint16_t)address, &temp, 14, 1000) != HAL_OK);
+	while(HAL_I2C_Master_Receive(Handle, (uint16_t)address, &temp, 1, 1000) != HAL_OK);
 	temp |= 0x10;
 	reg[0] = MPU6050_INT_PIN_CFG;
 	reg[1] = temp;
 	while(HAL_I2C_Master_Transmit(Handle, (uint16_t)address, reg, 2, 1000) != HAL_OK);
 
 	/* Return OK */
-	return SD_MPU6050_Result_Ok;
+	return MPU6050_Result_Ok;
 }
-SD_MPU6050_Result SD_MPU6050_DisableInterrupts(I2C_HandleTypeDef* I2Cx,SD_MPU6050* DataStruct)
+
+
+MPU6050_Result MPU6050_DisableInterrupts(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct)
 {
-	uint8_t reg[2] = {MPU6050_INT_ENABLE,0x00};
-	I2C_HandleTypeDef* Handle = I2Cx;
-	uint8_t address = DataStruct->Address;
+	uint8_t regVal = 0x00;
+	uint8_t DevAddress = DataStruct->Address;
 
 	/* Disable interrupts */
-	while(HAL_I2C_Master_Transmit(Handle,(uint16_t)address,reg,2,1000)!=HAL_OK);
+	if (HAL_I2C_Mem_Write(I2Cx, DevAddress, MPU6050_INT_ENABLE, REG_SIZE, &regVal, REG_SIZE, 1000))
+	{
+				return MPU6050_Result_Error;
+	}
 	/* Return OK */
-	return SD_MPU6050_Result_Ok;
+	return MPU6050_Result_Ok;
 }
-SD_MPU6050_Result SD_MPU6050_ReadInterrupts(I2C_HandleTypeDef* I2Cx,SD_MPU6050* DataStruct, SD_MPU6050_Interrupt* InterruptsStruct)
+
+
+
+MPU6050_Result MPU6050_ReadInterrupts(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct, MPU6050_Interrupt* InterruptsStruct)
 {
-	uint8_t read;
+	uint8_t data;
 
 	/* Reset structure */
 	InterruptsStruct->Status = 0;
-	uint8_t reg = MPU6050_INT_STATUS;
-	I2C_HandleTypeDef* Handle = I2Cx;
-	uint8_t address = DataStruct->Address;
+	uint8_t DevAddress = DataStruct->Address;
 
-	while(HAL_I2C_Master_Transmit(Handle, (uint16_t)address, &reg, 1, 1000) != HAL_OK);
-
-	while(HAL_I2C_Master_Receive(Handle, (uint16_t)address, &read, 14, 1000) != HAL_OK);
+	if (HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_INT_STATUS, 1, &data, 1, 1000) != HAL_OK)
+	{
+		return MPU6050_Result_Error;
+	}
 
 	/* Fill value */
-	InterruptsStruct->Status = read;
+	InterruptsStruct->Status = data;
 	/* Return OK */
-	return SD_MPU6050_Result_Ok;
+	return MPU6050_Result_Ok;
+}
+
+float    MPU6050_getGyroScale(I2C_HandleTypeDef* I2Cx, MPU6050* DataStruct){
+
+	uint8_t regVal ,GyroscopeRange ;
+	uint8_t DevAddress = DataStruct->Address;
+	// read the gyro range
+
+	HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_GYRO_CONFIG, REG_SIZE, &regVal, REG_SIZE, 1000);
+
+	GyroscopeRange = (regVal >> 3) & 0x3;
+
+	switch (GyroscopeRange) {
+			case MPU6050_Gyroscope_250s:
+				return (float)1 / MPU6050_GYRO_SENS_250;
+				break;
+			case MPU6050_Gyroscope_500s:
+				return (float)1 / MPU6050_GYRO_SENS_500;
+				break;
+			case MPU6050_Gyroscope_1000s:
+				return (float)1 / MPU6050_GYRO_SENS_1000;
+				break;
+			case MPU6050_Gyroscope_2000s:
+				return (float)1 / MPU6050_GYRO_SENS_2000;
+				break;
+			default:
+				break;
+		}
+
+	return (float)(0.0);
+}
+
+float    MPU6050_getAccelScale(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct)
+{
+	uint8_t regVal ,AccelerometerRange ;
+	uint8_t DevAddress = DataStruct->Address;
+	// read the gyro range
+
+	HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_ACCEL_CONFIG, REG_SIZE, &regVal, REG_SIZE, 1000);
+
+	AccelerometerRange = (regVal >> 3) & 0x3;
+
+	switch (AccelerometerRange) {
+		case MPU6050_Accelerometer_2G:
+			return (float)1 / MPU6050_ACCE_SENS_2;
+			break;
+		case MPU6050_Accelerometer_4G:
+			return (float)1 / MPU6050_ACCE_SENS_4;
+			break;
+		case MPU6050_Accelerometer_8G:
+			return (float)1 / MPU6050_ACCE_SENS_8;
+			break;
+		case MPU6050_Accelerometer_16G:
+			return (float)1 / MPU6050_ACCE_SENS_16;
+			break;
+		default:
+			break;
+		}
+	return (float)(0.0);
 }

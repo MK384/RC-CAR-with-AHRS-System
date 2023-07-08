@@ -21,8 +21,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "mpu6050.h"
-#include "stdio.h"
 
 /* USER CODE END Includes */
 
@@ -59,10 +57,6 @@ static void MX_I2C1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-SD_MPU6050 mpu1;
-
-float g_x , g_y , g_z , a_x , a_y , a_z , temperature;
-
 /* USER CODE END 0 */
 
 /**
@@ -96,22 +90,6 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
-  SD_MPU6050_Result result = SD_MPU6050_Init( &hi2c1,&mpu1,SD_MPU6050_Device_0,
-		  SD_MPU6050_Accelerometer_8G, SD_MPU6050_Gyroscope_250s , SD_MPU6050_DataRate_LPF_1KHz  );
-
-  HAL_Delay(500);
-
-  if(result == SD_MPU6050_Result_Ok)
-  {
-	  printf("MPU6050 response OK !");
-  }
-  else
-  {
-	  printf("MPU6050 response NOT OK !!!");
-  }
-
-  SD_MPU6050_SetLowPassFilter(&hi2c1, &mpu1, SD_MPU6050_Bandwidth_10_Hz);
-  SD_MPU6050_Calibrate(&hi2c1, &mpu1, 10);
 
   /* USER CODE END 2 */
 
@@ -119,24 +97,11 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  SD_MPU6050_ReadAll(&hi2c1,&mpu1);
 
-	   a_x =  mpu1.Accelerometer_X;
-	   a_y =  mpu1.Accelerometer_Y;
-	   a_z =  mpu1.Accelerometer_Z;
-
-	   g_x =  mpu1.Gyroscope_X;
-	   g_y =  mpu1.Gyroscope_Y;
-	   g_z =  mpu1.Gyroscope_Z;
-
-	  temperature = mpu1.Temperature;
-
-	  HAL_Delay(10);
-
-    /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
@@ -203,7 +168,7 @@ static void MX_I2C1_Init(void)
 
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
-  hi2c1.Init.ClockSpeed = 100000;
+  hi2c1.Init.ClockSpeed = 400000;
   hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
   hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
