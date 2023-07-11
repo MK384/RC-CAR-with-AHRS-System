@@ -495,10 +495,10 @@ MPU6050_Result MPU6050_ReadInterrupts(MPU6050* ptrConfigStruct)
 	return MPU6050_Result_Ok;
 }
 
-inline static float MPU6050_getGyroScale(I2C_HandleTypeDef* I2Cx, MPU6050* DataStruct){
+inline static float MPU6050_getGyroScale(){
 
 	uint8_t regVal ,GyroscopeRange ;
-	uint8_t DevAddress = DataStruct->Address;
+
 	// read the gyro range
 
 	HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_GYRO_CONFIG, REG_SIZE, &regVal, REG_SIZE, 1000);
@@ -525,10 +525,10 @@ inline static float MPU6050_getGyroScale(I2C_HandleTypeDef* I2Cx, MPU6050* DataS
 	return (float)(0.0);
 }
 
-inline static float MPU6050_getAccelScale(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct)
+inline static float MPU6050_getAccelScale()
 {
 	uint8_t regVal ,AccelerometerRange ;
-	uint8_t DevAddress = DataStruct->Address;
+
 	// read the gyro range
 
 	HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_ACCEL_CONFIG, REG_SIZE, &regVal, REG_SIZE, 1000);
