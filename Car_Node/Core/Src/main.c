@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include "usbd_cdc_if.h"
 #include "mpu6050.h"
+#include "GY271.h"
 #include "math.h"
 
 /* USER CODE END Includes */
@@ -67,6 +68,7 @@ static void MX_TIM2_Init(void);
 #define RAD_TO_DEG	((float) 57.2957795)
 
 MPU6050 mpu1;
+GY271   mag1;
 
 float rollAngel , pitchAngel;
 
@@ -136,7 +138,7 @@ int main(void)
 	  	  HAL_Delay(20);
 		  MPU6050_ReadAll(&mpu1);
 		  rollAngel = atan2f(mpu1.Accel_Xyz[1], mpu1.Accel_Xyz[2] ) * RAD_TO_DEG;
-		  pitchAngel = atan2f(mpu1.Accel_Xyz[0], MPU6050_GRAVITY_ACCEL) * RAD_TO_DEG;
+		  pitchAngel = atan2f(mpu1.Accel_Xyz[0], sqrtf(mpu1.Accel_Xyz[1]*mpu1.Accel_Xyz[1] + mpu1.Accel_Xyz[2]*mpu1.Accel_Xyz[2])) * RAD_TO_DEG;
 
 		  printf("%.3f,%.3f\r\n",rollAngel,pitchAngel);
 

@@ -82,11 +82,14 @@ typedef enum {
  */
 typedef enum {
 
-	GY271_Range_1G = 1,			/*!< For magnetic clear environment*/
-	GY271_Range_2G = 2,			/*!< For magnetic clear environment*/
-	GY271_Range_3G = 3,			/*!< For magnetic clear environment*/
-	GY271_Range_4G = 4,			/*!< For magnetic crowded environment*/
-	GY271_Range_8G = 7,			/*!< For magnetic crowded environment*/
+	GY271_Range_0_9Ga,
+	GY271_Range_1_3Ga,			/*!< For magnetic clear environment*/
+	GY271_Range_1_9Ga,			/*!< For magnetic clear environment*/
+	GY271_Range_2_5Ga,			/*!< For magnetic clear environment*/
+	GY271_Range_4_0Ga,			/*!< For magnetic crowded environment*/
+	GY271_Range_4_7Ga,			/*!< For magnetic crowded environment*/
+	GY271_Range_5_6Ga,
+	GY271_Range_8_1Ga
 
 }GY271_FieldRange;
 
@@ -113,6 +116,29 @@ typedef enum {
  * @}
  */
 
+/**
+ * @defgroup GY271 Gain LSB define list
+ * @{
+ */
+
+
+#define 		GY271_GAIN_LSB_0_9Ga			((float)1370)
+#define 		GY271_GAIN_LSB_1_3Ga			((float)1090)
+#define 		GY271_GAIN_LSB_1_9Ga			((float)820)
+#define 		GY271_GAIN_LSB_2_5Ga			((float)660)
+#define 		GY271_GAIN_LSB_4_0Ga			((float)440)
+#define 		GY271_GAIN_LSB_4_7Ga			((float)390)
+#define 		GY271_GAIN_LSB_5_6Ga			((float)330)
+#define 		GY271_GAIN_LSB_8_1Ga			((float)230)
+
+
+
+
+
+/**
+ * @}
+ */
+
 
 /**
  * @defgroup  GY271 Data structure
@@ -121,9 +147,16 @@ typedef enum {
 
 typedef struct{
 
-	int16_t Compass_X;
-	int16_t Compass_Y;
-	int16_t Compass_Z;
+	I2C_HandleTypeDef* I2Cx;
+	GY271_ModeControl mode;
+	GY271_DataRate dataRate;
+	GY271_FieldRange range;
+	GY271_SampleAvgRate samplesRate;
+	uint8_t dataReadFlag;
+
+	int16_t Compass_Raw[3];
+	float   Compass_Xyz[3];
+
 
 
 }GY271;
@@ -150,7 +183,7 @@ typedef struct{
  * @retval GY271_Result : GY271_Result_Ok if everything is went right , else if there is a problem
  * @note
  */
-GY271_Result GY271_Init(I2C_HandleTypeDef* I2Cx , GY271_ModeControl mode , GY271_DataRate dataRate, GY271_FieldRange range, GY271_SampleAvgRate samplesRate );
+GY271_Result GY271_Init(GY271 * dataStruct);
 
 
 
@@ -162,8 +195,18 @@ GY271_Result GY271_Init(I2C_HandleTypeDef* I2Cx , GY271_ModeControl mode , GY271
  * @note
  */
 
-GY271_Result GY271_ReadData(I2C_HandleTypeDef* I2Cx , GY271* dataStruct);
+GY271_Result GY271_getData( GY271* dataStruct);
 
+
+/**
+ * @brief :	 check if data is ready
+ * @param :	 GY271 struct
+ * @retval GY271_Result : Result_ok if operation succeeded
+ * @note
+ */
+
+
+GY271_Result GY271_getReadyFlag(GY271* dataStruct);
 
 /**
  * @}

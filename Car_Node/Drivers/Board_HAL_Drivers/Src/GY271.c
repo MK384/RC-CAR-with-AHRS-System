@@ -39,6 +39,7 @@
  * @}
  */
 
+static 		float   	magGain;
 
 /**
  * @defgroup  Functions Implementation
@@ -46,10 +47,9 @@
  */
 
 
-GY271_Result GY271_Init(I2C_HandleTypeDef* I2Cx , GY271_ModeControl mode , GY271_DataRate dataRate, GY271_FieldRange range, GY271_SampleAvgRate samplesRate )
-{
+GY271_Result GY271_Init(GY271 * dataStruct){
 
-
+	I2C_HandleTypeDef * I2Cx = dataStruct->I2Cx;
 	uint8_t regVal = 0x01;
 	uint8_t temp;
 	uint8_t DevAddress = GY271_I2C_ADDR;
@@ -61,7 +61,7 @@ GY271_Result GY271_Init(I2C_HandleTypeDef* I2Cx , GY271_ModeControl mode , GY271
 	}
 
 	//-------------------------
-	regVal = ((samplesRate << 5)  | (dataRate << 2)) & (0b01111100) ;
+	regVal = ((dataStruct->samplesRate << 5)  | (dataStruct->dataRate << 2)) & (0b01111100) ;
 
 	/*Write config Register A*/
 	if (HAL_I2C_Mem_Write(I2Cx, DevAddress, GY271_CONFIG_A, REG_SIZE, &regVal, REG_SIZE, 1000))
@@ -82,7 +82,7 @@ GY271_Result GY271_Init(I2C_HandleTypeDef* I2Cx , GY271_ModeControl mode , GY271
 
 
 	//-------------------------
-	regVal = (range << 5) & (0b11100000);
+	regVal = (dataStruct->range << 5) & (0b11100000);
 
 	/*Write config Register B*/
 	if (HAL_I2C_Mem_Write(I2Cx, DevAddress, GY271_CONFIG_B, REG_SIZE, &regVal, REG_SIZE, 1000))
@@ -102,7 +102,7 @@ GY271_Result GY271_Init(I2C_HandleTypeDef* I2Cx , GY271_ModeControl mode , GY271
 	}
 
 	//-------------------------
-	regVal = mode & (0b00000011);
+	regVal = dataStruct->mode & (0b00000011);
 
 	/*Write Mode Register */
 	if (HAL_I2C_Mem_Write(I2Cx, DevAddress, GY271_MODE, REG_SIZE, &regVal, REG_SIZE, 1000))
@@ -121,6 +121,36 @@ GY271_Result GY271_Init(I2C_HandleTypeDef* I2Cx , GY271_ModeControl mode , GY271
 		return GY271_Result_Error;
 	}
 
+	/* set mag gain*/
+	switch (dataStruct->range) {
+		case GY271_Range_0_9Ga:
+			magGain = (float)1.0 / GY271_GAIN_LSB_0_9Ga;
+			break;
+		case GY271_Range_1_3Ga:
+			magGain = (float)1.0 / GY271_GAIN_LSB_1_3Ga;
+			break;
+		case GY271_Range_1_9Ga:
+			magGain = (float)1.0 / GY271_GAIN_LSB_1_9Ga;
+			break;
+		case GY271_Range_2_5Ga:
+			magGain = (float)1.0 / GY271_GAIN_LSB_2_5Ga;
+			break;
+		case GY271_Range_4_0Ga:
+			magGain = (float)1.0 / GY271_GAIN_LSB_4_0Ga;
+			break;
+		case GY271_Range_4_7Ga:
+			magGain = (float)1.0 / GY271_GAIN_LSB_4_7Ga;
+			break;
+		case GY271_Range_5_6Ga:
+			magGain = (float)1.0 / GY271_GAIN_LSB_5_6Ga;
+			break;
+		case GY271_Range_8_1Ga:
+			magGain = (float)1.0 / GY271_GAIN_LSB_8_1Ga;
+			break;
+
+		default:
+			break;
+	}
 
 
 	return GY271_Result_Ok;
@@ -129,9 +159,9 @@ GY271_Result GY271_Init(I2C_HandleTypeDef* I2Cx , GY271_ModeControl mode , GY271
 
 
 
-GY271_Result GY271_ReadData(I2C_HandleTypeDef* I2Cx , GY271* dataStruct)
-{
+GY271_Result GY271_getData( GY271* dataStruct){
 
+	I2C_HandleTypeDef * I2Cx = dataStruct->I2Cx;
 	uint8_t data[6];
 
 	/*Read Magnemeter*/
@@ -140,15 +170,34 @@ GY271_Result GY271_ReadData(I2C_HandleTypeDef* I2Cx , GY271* dataStruct)
 	}
 
 	/*Format*/
-	dataStruct->Compass_X = (int16_t) (data[0] << 8 | data[1]);
-	dataStruct->Compass_Y = (int16_t) (data[2] << 8 | data[3]);
-	dataStruct->Compass_Z = (int16_t) (data[4] << 8 | data[5]);
+	dataStruct->Compass_Raw[0] = (int16_t) (data[0] << 8 | data[1]);
+	dataStruct->Compass_Raw[1] = (int16_t) (data[2] << 8 | data[3]);
+	dataStruct->Compass_Raw[2] = (int16_t) (data[4] << 8 | data[5]);
+
+	dataStruct->Compass_Xyz[0] = dataStruct->Compass_Raw[0] * magGain;
+	dataStruct->Compass_Xyz[1] = dataStruct->Compass_Raw[1] * magGain;
+	dataStruct->Compass_Xyz[2] = dataStruct->Compass_Raw[2] * magGain;
 
 
 
 	return GY271_Result_Ok;
 }
 
+GY271_Result GY271_getReadyFlag(GY271* dataStruct){
+
+	I2C_HandleTypeDef * I2Cx = dataStruct->I2Cx;
+	uint8_t regVal;
+
+	/*Read status register*/
+	if (HAL_I2C_Mem_Read(I2Cx, GY271_I2C_ADDR, GY271_STATUS, 1, &regVal, 1, 1000)){
+		return GY271_Result_Error;
+	}
+
+	dataStruct->dataReadFlag = regVal & 0x01;
+
+	return GY271_Result_Ok;
+
+}
 
 
 /**
