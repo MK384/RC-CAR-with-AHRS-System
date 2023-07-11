@@ -37,7 +37,7 @@ extern "C" {
 
 /* Default I2C address */
 #define MPU6050_I2C_ADDR_AD0_LOW	0xD0
-#define MPU6050_I2C_ADDR_AD0_LOW	0xD1
+#define MPU6050_I2C_ADDR_AD0_HIGH	0xD1
 
 /**
  * @defgroup  Conversion defines

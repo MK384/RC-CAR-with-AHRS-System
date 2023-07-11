@@ -139,10 +139,13 @@ MPU6050_Result MPU6050_Init(MPU6050* ptrConfigStruct)
 		{
 					return MPU6050_Result_Error;
 		}
-	//------------------
-
-
-	/* Set sample rate  */
+//------------------
+	/* Config Digital Low Pass Filter  */
+	if (MPU6050_SetLowPassFilter(ptrConfigStruct, ptrConfigStruct->LowPassFilter))
+	{
+				return MPU6050_Result_Error;
+	}
+	/* config sample rate  */
 	if (MPU6050_SetDataRate(ptrConfigStruct, ptrConfigStruct->DataRate))
 	{
 				return MPU6050_Result_Error;
@@ -338,7 +341,6 @@ MPU6050_Result MPU6050_SetLowPassFilter(MPU6050* ptrConfigStruct, MPU6050_DLPF f
 MPU6050_Result MPU6050_getAcceleration(MPU6050* ptrConfigStruct)
 {
 	uint8_t data[6];
-	uint8_t DevAddress = DataStruct->Address;
 
 	/* Read accelerometer data */
 	if (HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_ACCEL_XOUT_H, 6, data, 6, 1000)){
@@ -360,7 +362,6 @@ MPU6050_Result MPU6050_getAcceleration(MPU6050* ptrConfigStruct)
 MPU6050_Result MPU6050_getRotation(MPU6050* ptrConfigStruct)
 {
 	uint8_t data[6];
-	uint8_t DevAddress = DataStruct->Address;
 
 	/* Read gyroscope data */
 	if (HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_GYRO_XOUT_H, 6, data, 6, 1000)){
@@ -443,17 +444,17 @@ MPU6050_Result MPU6050_EnableInterrupts(MPU6050* ptrConfigStruct)
 	I2C_HandleTypeDef* Handle = I2Cx;
 
 	/* Enable interrupts for data ready and motion detect */
-	while(HAL_I2C_Master_Transmit(Handle, (uint16_t)address, reg, 2, 1000) != HAL_OK);
+	while(HAL_I2C_Master_Transmit(Handle, DevAddress, reg, 2, 1000) != HAL_OK);
 
 	uint8_t mpu_reg= MPU6050_INT_PIN_CFG;
 	/* Clear IRQ flag on any read operation */
-	while(HAL_I2C_Master_Transmit(Handle, (uint16_t)address, &mpu_reg, 1, 1000) != HAL_OK);
+	while(HAL_I2C_Master_Transmit(Handle, DevAddress, &mpu_reg, 1, 1000) != HAL_OK);
 
-	while(HAL_I2C_Master_Receive(Handle, (uint16_t)address, &temp, 1, 1000) != HAL_OK);
+	while(HAL_I2C_Master_Receive(Handle, DevAddress, &temp, 1, 1000) != HAL_OK);
 	temp |= 0x10;
 	reg[0] = MPU6050_INT_PIN_CFG;
 	reg[1] = temp;
-	while(HAL_I2C_Master_Transmit(Handle, (uint16_t)address, reg, 2, 1000) != HAL_OK);
+	while(HAL_I2C_Master_Transmit(Handle, DevAddress, reg, 2, 1000) != HAL_OK);
 
 	/* Return OK */
 	return MPU6050_Result_Ok;
