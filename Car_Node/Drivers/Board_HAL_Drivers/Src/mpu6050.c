@@ -307,7 +307,7 @@ MPU6050_Result MPU6050_setFullScaleGyroRange(MPU6050* ptrConfigStruct, MPU6050_G
 
 	if (regVal  == (uint8_t) (GyroscopeRange << 3) ){
 		ptrConfigStruct->GyroscopeRange = GyroscopeRange;
-		ptrConfigStruct->Accel_Scale = MPU6050_getGyroScale();
+		ptrConfigStruct->Gyro_Scale = MPU6050_getGyroScale();
 		// Return OK
 		return MPU6050_Result_Ok;
 	}else{

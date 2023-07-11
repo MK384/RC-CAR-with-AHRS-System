@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include "usbd_cdc_if.h"
 #include "mpu6050.h"
+#include "math.h"
 
 /* USER CODE END Includes */
 
@@ -63,7 +64,11 @@ static void MX_TIM2_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+#define RAD_TO_DEG	((float) 57.2957795)
+
 MPU6050 mpu1;
+
+float rollAngel , pitchAngel;
 
 /* USER CODE END 0 */
 
@@ -107,7 +112,7 @@ int main(void)
   mpu1.DataRate = MPU6050_DataRate_1KHz;
   mpu1.AccelerometerRange = MPU6050_Accelerometer_2G;
   mpu1.GyroscopeRange= MPU6050_Gyroscope_250s;
-  mpu1.interruptState = MPU6050_Interrupt_Enabled;
+  mpu1.interruptState = MPU6050_Interrupt_Disabled;
 
   if (MPU6050_Init(&mpu1))
   {
@@ -127,6 +132,14 @@ int main(void)
   {
 
     /* USER CODE END WHILE */
+
+	  	  HAL_Delay(20);
+		  MPU6050_ReadAll(&mpu1);
+		  rollAngel = atan2f(mpu1.Accel_Xyz[1], mpu1.Accel_Xyz[2] ) * RAD_TO_DEG;
+		  pitchAngel = atan2f(mpu1.Accel_Xyz[0], MPU6050_GRAVITY_ACCEL) * RAD_TO_DEG;
+
+		  printf("%.3f,%.3f\r\n",rollAngel,pitchAngel);
+
 
 
 
