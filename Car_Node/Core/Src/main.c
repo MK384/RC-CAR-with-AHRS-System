@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usbd_cdc_if.h"
+#include "mpu6050.h"
 
 /* USER CODE END Includes */
 
@@ -62,6 +63,8 @@ static void MX_TIM2_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+MPU6050 mpu1;
+
 /* USER CODE END 0 */
 
 /**
@@ -96,6 +99,22 @@ int main(void)
   MX_USB_DEVICE_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
+
+
+  mpu1.I2Cx = &hi2c1;
+  mpu1.Address = MPU6050_I2C_ADDR_AD0_LOW;
+  mpu1.LowPassFilter = MPU6050_DLPF_BW_98Hz;
+  mpu1.DataRate = MPU6050_DataRate_1KHz;
+  mpu1.AccelerometerRange = MPU6050_Accelerometer_2G;
+  mpu1.GyroscopeRange= MPU6050_Gyroscope_250s;
+  mpu1.interruptState = MPU6050_Interrupt_Enabled;
+
+  if (MPU6050_Init(&mpu1))
+  {
+	  while(1)
+		  ;
+  }
+
 
 
 

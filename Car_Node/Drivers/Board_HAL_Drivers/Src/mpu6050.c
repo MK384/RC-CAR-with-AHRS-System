@@ -161,6 +161,22 @@ MPU6050_Result MPU6050_Init(MPU6050* ptrConfigStruct)
 	{
 				return MPU6050_Result_Error;
 	}
+	/*Config Interrupts*/
+	switch (ptrConfigStruct->interruptState) {
+		case MPU6050_Interrupt_Disabled:
+			if(MPU6050_DisableInterrupts(ptrConfigStruct))
+			{
+						return MPU6050_Result_Error;
+			}
+			break;
+		case MPU6050_Interrupt_Enabled:
+			if (MPU6050_EnableInterrupts(ptrConfigStruct))
+			{
+						return MPU6050_Result_Error;
+			}
+		default:
+			break;
+	}
 
 	/* Return OK */
 	return MPU6050_Result_Ok;
@@ -457,6 +473,7 @@ MPU6050_Result MPU6050_EnableInterrupts(MPU6050* ptrConfigStruct)
 	while(HAL_I2C_Master_Transmit(Handle, DevAddress, reg, 2, 1000) != HAL_OK);
 
 	/* Return OK */
+	ptrConfigStruct->interruptState = MPU6050_Interrupt_Enabled;
 	return MPU6050_Result_Ok;
 }
 
@@ -471,6 +488,7 @@ MPU6050_Result MPU6050_DisableInterrupts(MPU6050* ptrConfigStruct)
 				return MPU6050_Result_Error;
 	}
 	/* Return OK */
+	ptrConfigStruct->interruptState = MPU6050_Interrupt_Disabled;
 	return MPU6050_Result_Ok;
 }
 
@@ -481,7 +499,7 @@ MPU6050_Result MPU6050_ReadInterrupts(MPU6050* ptrConfigStruct)
 	uint8_t data;
 
 	/* Reset structure */
-	ptrConfigStruct->InterruptStatus.Status = 0x00;
+	ptrConfigStruct->InterruptFlags.reg = 0x00;
 
 	if (HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_INT_STATUS, 1, &data, 1, 1000) != HAL_OK)
 	{
@@ -489,7 +507,7 @@ MPU6050_Result MPU6050_ReadInterrupts(MPU6050* ptrConfigStruct)
 	}
 
 	/* Fill value */
-	ptrConfigStruct->InterruptStatus.Status = data;
+	ptrConfigStruct->InterruptFlags.reg = data;
 
 	/* Return OK */
 	return MPU6050_Result_Ok;

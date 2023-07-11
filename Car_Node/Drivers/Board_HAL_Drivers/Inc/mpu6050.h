@@ -140,6 +140,14 @@ typedef enum {
  */
 
 
+typedef enum {
+
+	MPU6050_Interrupt_Disabled,
+	MPU6050_Interrupt_Enabled,
+
+
+}MPU6050_InterruptState;
+
 /**
  * @brief  Main MPU6050 structure
  */
@@ -153,20 +161,21 @@ typedef struct  {
 	MPU6050_Gyroscope GyroscopeRange;				/* Gyroscope range , default is 250 deg/s */
 	MPU6050_DataRate DataRate;						/* Rate of Data output */
 	MPU6050_DLPF     LowPassFilter;				    /* Low pass filter bandwidth */
+	MPU6050_InterruptState  interruptState;		/* Control interrupt enable and disable*/
 	// interrupts
 	union {
-		struct {
-			uint8_t DataReadyFlag:1;       /*!< Data ready interrupt */
-			uint8_t reserved2:2;      	   /*!< Reserved bits */
-			uint8_t MasterFlag:1;          /*!< Master interrupt. Not enabled with library */
-			uint8_t FifoOverFlowFlag:1;    /*!< FIFO overflow interrupt. Not enabled with library */
-			uint8_t reserved1:1;           /*!< Reserved bit */
-			uint8_t MotionDetectionFlag:1; /*!< Motion detected interrupt */
-			uint8_t reserved0:1;           /*!< Reserved bit */
-		} InterruptFlags;
 
-		uint8_t Status;
-	}InterruptStatus;
+		uint8_t DataReadyFlag:1;       /*!< Data ready interrupt */
+		uint8_t reserved2:2;      	   /*!< Reserved bits */
+		uint8_t MasterFlag:1;          /*!< Master interrupt. Not enabled with library */
+		uint8_t FifoOverFlowFlag:1;    /*!< FIFO overflow interrupt. Not enabled with library */
+		uint8_t reserved1:1;           /*!< Reserved bit */
+		uint8_t MotionDetectionFlag:1; /*!< Motion detected interrupt */
+		uint8_t reserved0:1;           /*!< Reserved bit */
+
+
+		uint8_t reg;
+	}InterruptFlags;
 
 
 	int16_t Accel_RawData[3];			     /*!< Accelerometer raw data values around three axis   */
