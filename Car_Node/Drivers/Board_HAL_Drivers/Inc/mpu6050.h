@@ -35,22 +35,17 @@ extern "C" {
 #define MPU6050_I2C_CLOCK              400000            /*!< Default I2C clock speed */
 #endif
 
+/* Default I2C address */
+#define MPU6050_I2C_ADDR_AD0_LOW	0xD0
+#define MPU6050_I2C_ADDR_AD0_LOW	0xD1
+
 /**
- * @brief  Data rates while LPF is OFF predefined constants
+ * @defgroup  Conversion defines
  * @{
  */
-#define MPU6050_DataRate_8KHz       0   /*!< Sample rate set to 8 kHz */
-#define MPU6050_DataRate_4KHz       1   /*!< Sample rate set to 4 kHz */
-#define MPU6050_DataRate_2KHz       3   /*!< Sample rate set to 2 kHz */
-#define MPU6050_DataRate_1KHz       7   /*!< Sample rate set to 1 kHz */
-#define MPU6050_DataRate_500Hz      15  /*!< Sample rate set to 500 Hz */
-#define MPU6050_DataRate_250Hz      31  /*!< Sample rate set to 250 Hz */
-#define MPU6050_DataRate_125Hz      63  /*!< Sample rate set to 125 Hz */
-#define MPU6050_DataRate_100Hz      79  /*!< Sample rate set to 100 Hz */
-/**
- * @}
- */
 
+#define 	MPU6050_GRAVITY_ACCEL	((float)(9.805))
+#define		MPU6050_DEG_TO_RAD		((float)(0.01745329252))
 
 
 /**
@@ -62,6 +57,25 @@ extern "C" {
  * @brief    Library Typedefs
  * @{
  */
+
+/**
+ * @brief  Data rates while LPF is OFF predefined constants
+ * @{
+ */
+
+typedef enum {
+
+MPU6050_DataRate_8KHz,         /*!< Sample rate set to 8 kHz */
+MPU6050_DataRate_4KHz,  	   /*!< Sample rate set to 4 kHz */
+MPU6050_DataRate_2KHz, 		   /*!< Sample rate set to 2 kHz */
+MPU6050_DataRate_1KHz, 	 	   /*!< Sample rate set to 1 kHz */
+MPU6050_DataRate_500Hz,        /*!< Sample rate set to 500 Hz */
+MPU6050_DataRate_250Hz,        /*!< Sample rate set to 250 Hz */
+MPU6050_DataRate_125Hz,        /*!< Sample rate set to 125 Hz */
+MPU6050_DataRate_100Hz,        /*!< Sample rate set to 100 Hz */
+
+
+}MPU6050_DataRate;
 
 /**
  * @brief  MPU6050 can have 2 different slave addresses, depends on it's input AD0 pin
@@ -109,15 +123,21 @@ typedef enum {
 
 typedef enum {
 
-  MPU6050_DLPF_BW_256  = 0x00,
-  MPU6050_DLPF_BW_188,
-  MPU6050_DLPF_BW_98,
-  MPU6050_DLPF_BW_42,
-  MPU6050_DLPF_BW_20,
-  MPU6050_DLPF_BW_10,
-  MPU6050_DLPF_BW_5,
+  MPU6050_DLPF_OFF  = 0x00,
+  MPU6050_DLPF_BW_188Hz,
+  MPU6050_DLPF_BW_98Hz,
+  MPU6050_DLPF_BW_42Hz,
+  MPU6050_DLPF_BW_20Hz,
+  MPU6050_DLPF_BW_10Hz,
+  MPU6050_DLPF_BW_5Hz,
+  MPU6050_DLPF_Disable
 
-}MPU6050_DLPF_BW;
+
+}MPU6050_DLPF;
+
+/**
+ * @}
+ */
 
 
 /**
@@ -125,39 +145,48 @@ typedef enum {
  */
 typedef struct  {
 
-	/* Private */
+	// communication parameters
+	I2C_HandleTypeDef* I2Cx;						/*pointer to Handler struct of the I2C used to communication */
+	uint8_t Address;           						/*!< I2C address of device. */
+	// measurement parameters
+	MPU6050_Accelerometer AccelerometerRange;	    /* Accelerometer range , default is +/- 2g */
+	MPU6050_Gyroscope GyroscopeRange;				/* Gyroscope range , default is 250 deg/s */
+	MPU6050_DataRate DataRate;						/* Rate of Data output */
+	MPU6050_DLPF     LowPassFilter;				    /* Low pass filter bandwidth */
+	// interrupts
+	union {
+		struct {
+			uint8_t DataReadyFlag:1;       /*!< Data ready interrupt */
+			uint8_t reserved2:2;      	   /*!< Reserved bits */
+			uint8_t MasterFlag:1;          /*!< Master interrupt. Not enabled with library */
+			uint8_t FifoOverFlowFlag:1;    /*!< FIFO overflow interrupt. Not enabled with library */
+			uint8_t reserved1:1;           /*!< Reserved bit */
+			uint8_t MotionDetectionFlag:1; /*!< Motion detected interrupt */
+			uint8_t reserved0:1;           /*!< Reserved bit */
+		} InterruptFlags;
 
-	uint8_t Address;           /*!< I2C address of device. */
+		uint8_t Status;
+	}InterruptStatus;
 
-	/* Public */
 
-	int16_t Accelerometer_X; /*!< Accelerometer value X axis */
-	int16_t Accelerometer_Y; /*!< Accelerometer value Y axis */
-	int16_t Accelerometer_Z; /*!< Accelerometer value Z axis */
+	int16_t Accel_RawData[3];			     /*!< Accelerometer raw data values around three axis   */
+	int16_t Gyro_RawData[3];     		     /*!< Gyroscope raw data values around three axis  */
 
-	int16_t Gyroscope_X;     /*!< Gyroscope value X axis */
-	int16_t Gyroscope_Y;     /*!< Gyroscope value Y axis */
-	int16_t Gyroscope_Z;     /*!< Gyroscope value Z axis */
+	float   Accel_Xyz[3];					 /*!< Accelerometer data values around 3 axis in m/s^2 */
+	float   Gyro_Xyz[3];     				 /*!< Gyroscope raw data values axis around 3 axis in rad/s */
 
-	float   Temperature;   /*!< Temperature in degrees */
+
+	float Accel_Scale;						/* scale factor for accelerometer */
+	float Gyro_Scale;						/* scale factor for gyroscope */
+
+	float   Temperature;   					 /*!< Temperature in degrees */
 
 } MPU6050;
 
 /**
  * @brief  Interrupts union and structure
  */
-typedef union {
-	struct {
-		uint8_t DataReady:1;       /*!< Data ready interrupt */
-		uint8_t reserved2:2;       /*!< Reserved bits */
-		uint8_t Master:1;          /*!< Master interrupt. Not enabled with library */
-		uint8_t FifoOverflow:1;    /*!< FIFO overflow interrupt. Not enabled with library */
-		uint8_t reserved1:1;       /*!< Reserved bit */
-		uint8_t MotionDetection:1; /*!< Motion detected interrupt */
-		uint8_t reserved0:1;       /*!< Reserved bit */
-	} Flags;
-	uint8_t Status;
-} MPU6050_Interrupt;
+
 
 
 /**
@@ -185,7 +214,7 @@ typedef union {
  *            - SD_MPU6050_Result_t: Everything OK
  *            - Other member: in other cases
  */
-MPU6050_Result MPU6050_Init(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct, MPU6050_Device DeviceNumber, MPU6050_Accelerometer AccelerometerSensitivity, MPU6050_Gyroscope GyroscopeSensitivity, uint8_t DataRate);
+MPU6050_Result MPU6050_Init(MPU6050* ptrConfigStruct);
 
 /**
  * @brief  Sets gyroscope sensitivity
@@ -193,7 +222,7 @@ MPU6050_Result MPU6050_Init(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct, MPU6050
  * @param  GyroscopeSensitivity: Gyro sensitivity value. This parameter can be a value of @ref SD_MPU6050_Gyroscope_t enumeration
  * @retval Member of @ref SD_MPU6050_Result_t enumeration
  */
-MPU6050_Result MPU6050_setFullScaleGyroRange(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct, MPU6050_Gyroscope GyroscopeSensitivity);
+MPU6050_Result MPU6050_setFullScaleGyroRange(MPU6050* ptrConfigStruct, MPU6050_Gyroscope GyroscopeSensitivity);
 
 /**
  * @brief  Sets accelerometer sensitivity
@@ -201,7 +230,7 @@ MPU6050_Result MPU6050_setFullScaleGyroRange(I2C_HandleTypeDef* I2Cx,MPU6050* Da
  * @param  AccelerometerSensitivity: Gyro sensitivity value. This parameter can be a value of @ref SD_MPU6050_Accelerometer_t enumeration
  * @retval Member of @ref SD_MPU6050_Result_t enumeration
  */
-MPU6050_Result MPU6050_setFullScaleAccelRange(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct, MPU6050_Accelerometer AccelerometerSensitivity);
+MPU6050_Result MPU6050_setFullScaleAccelRange(MPU6050* ptrConfigStruct, MPU6050_Accelerometer AccelerometerSensitivity);
 
 /**
  * @brief  Sets output data rate
@@ -209,7 +238,7 @@ MPU6050_Result MPU6050_setFullScaleAccelRange(I2C_HandleTypeDef* I2Cx,MPU6050* D
  * @param  rate: Data rate value. An 8-bit value for prescaler value
  * @retval Member of @ref SD_MPU6050_Result_t enumeration
  */
-MPU6050_Result MPU6050_SetDataRate(I2C_HandleTypeDef* I2Cx, MPU6050* DataStruct, uint8_t rate);
+MPU6050_Result MPU6050_SetDataRate( MPU6050* ptrConfigStruct, MPU6050_DataRate rate);
 
 /**
  * @brief  Sets low pass filter bandwidth
@@ -217,7 +246,7 @@ MPU6050_Result MPU6050_SetDataRate(I2C_HandleTypeDef* I2Cx, MPU6050* DataStruct,
  * @param  bandwidth: Bandwidth value. A Value of SD_MPU6050_Bandwidth enum
  * @retval Member of @ref SD_MPU6050_Result_t enumeration
  */
-MPU6050_Result MPU6050_SetLowPassFilter(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct, MPU6050_DLPF_BW bw);
+MPU6050_Result MPU6050_SetLowPassFilter(MPU6050* ptrConfigStruct, MPU6050_DLPF filter);
 
 
 /**
@@ -225,14 +254,14 @@ MPU6050_Result MPU6050_SetLowPassFilter(I2C_HandleTypeDef* I2Cx,MPU6050* DataStr
  * @param  *DataStruct: Pointer to @ref SD_MPU6050_t structure indicating MPU6050 device
  * @retval Member of @ref SD_MPU6050_Result_t enumeration
  */
-MPU6050_Result MPU6050_EnableInterrupts(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct);
+MPU6050_Result MPU6050_EnableInterrupts(MPU6050* ptrConfigStruct);
 
 /**
  * @brief  Disables interrupts
  * @param  *DataStruct: Pointer to @ref SD_MPU6050_t structure indicating MPU6050 device
  * @retval Member of @ref SD_MPU6050_Result_t enumeration
  */
-MPU6050_Result MPU6050_DisableInterrupts(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct);
+MPU6050_Result MPU6050_DisableInterrupts(MPU6050* ptrConfigStruct);
 
 /**
  * @brief  Reads and clears interrupts
@@ -240,7 +269,7 @@ MPU6050_Result MPU6050_DisableInterrupts(I2C_HandleTypeDef* I2Cx,MPU6050* DataSt
  * @param  *InterruptsStruct: Pointer to @ref SD_MPU6050_Interrupt_t structure to store status in
  * @retval Member of @ref SD_MPU6050_Result_t enumeration
  */
-MPU6050_Result MPU6050_ReadInterrupts(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct, MPU6050_Interrupt* InterruptsStruct);
+MPU6050_Result MPU6050_ReadInterrupts(MPU6050* ptrConfigStruct);
 
 /**
  * @brief  Reads accelerometer data from sensor
@@ -249,7 +278,7 @@ MPU6050_Result MPU6050_ReadInterrupts(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruc
  *            - SD_MPU6050_Result_Ok: everything is OK
  *            - Other: in other cases
  */
-MPU6050_Result MPU6050_getAcceleration(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct);
+MPU6050_Result MPU6050_getAcceleration(MPU6050* ptrConfigStruct);
 
 /**
  * @brief  Reads gyroscope data from sensor
@@ -258,7 +287,7 @@ MPU6050_Result MPU6050_getAcceleration(I2C_HandleTypeDef* I2Cx,MPU6050* DataStru
  *            - SD_MPU6050_Result_Ok: everything is OK
  *            - Other: in other cases
  */
-MPU6050_Result MPU6050_getRotation(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct);
+MPU6050_Result MPU6050_getRotation(MPU6050* ptrConfigStruct);
 
 /**
  * @brief  Reads temperature data from sensor
@@ -267,7 +296,7 @@ MPU6050_Result MPU6050_getRotation(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct);
  *            - SD_MPU6050_Result_Ok: everything is OK
  *            - Other: in other cases
  */
-MPU6050_Result MPU6050_getTemperature(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct);
+MPU6050_Result MPU6050_getTemperature(MPU6050* ptrConfigStruct);
 
 /**
  * @brief  Reads accelerometer, gyroscope and temperature data from sensor
@@ -276,21 +305,11 @@ MPU6050_Result MPU6050_getTemperature(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruc
  *            - SD_MPU6050_Result_Ok: everything is OK
  *            - Other: in other cases
  */
-MPU6050_Result MPU6050_ReadAll(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct);
+MPU6050_Result MPU6050_ReadAll(MPU6050* ptrConfigStruct);
 
 
-/**
- * @brief  : get the scale factor that multiplied by the raw data to calculate the deg/s value
- * @retval return_type : scale factor
- * @note
- */
-float    MPU6050_getGyroScale(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct);
-/**
- * @brief  : get the scale factor that multiplied by the raw data to calculate the (g) value
- * @retval return_type : scale factor
- * @note
- */
-float    MPU6050_getAccelScale(I2C_HandleTypeDef* I2Cx,MPU6050* DataStruct);
+
+
 /**
  * @}
  */
