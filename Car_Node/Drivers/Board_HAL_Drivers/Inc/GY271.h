@@ -139,6 +139,19 @@ typedef enum {
  * @}
  */
 
+/**
+ * @defgroup 		Output measurement units
+ * @{
+ */
+#define		GY271_UNIT_GAUSS				((float) 1.0    )
+#define		GY271_UNIT_TESLA				((float) 0.0001 )
+#define		GY271_UNIT_MICRO_TESLA			((float) 100.0  )
+#define		GY271_UNIT_MICRO_TESLA_PER_50	((float) 5000.0 )
+/**
+ * @}
+ */
+
+
 
 /**
  * @defgroup  GY271 Data structure
@@ -152,10 +165,11 @@ typedef struct{
 	GY271_DataRate dataRate;
 	GY271_FieldRange range;
 	GY271_SampleAvgRate samplesRate;
-	uint8_t dataReadFlag;
+	uint8_t dataReadyFlag;
+	float   outputUnit;
 
 	int16_t Compass_Raw[3];
-	float   Compass_Xyz[3];
+	float   Compass_Xyz[3];			/* Measurements in uT*/
 
 
 

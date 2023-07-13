@@ -85,9 +85,9 @@
  * @defgroup static function definition
  * @{
  */
-inline static float MPU6050_getGyroScale();
+inline static float MPU6050_getGyroScale(MPU6050* ptrConfigStruct);
 
-inline static float MPU6050_getAccelScale();
+inline static float MPU6050_getAccelScale(MPU6050* ptrConfigStruct);
 
 static I2C_HandleTypeDef* I2Cx;
 static uint8_t DevAddress;
@@ -202,28 +202,28 @@ MPU6050_Result MPU6050_SetDataRate( MPU6050* ptrConfigStruct, MPU6050_DataRate r
 			case MPU6050_DataRate_2KHz:
 			case MPU6050_DataRate_1KHz:
 
-				regVal = 0x00;
+				rate = 0x00;
 				break;
 			case MPU6050_DataRate_500Hz:
-				regVal = 0x01;
+				rate = 0x01;
 				break;
 			case MPU6050_DataRate_250Hz:
-				regVal = 0x03;
+				rate = 0x03;
 				break;
 			case MPU6050_DataRate_125Hz:
-				regVal = 0x07;
+				rate = 0x07;
 				break;
 			case MPU6050_DataRate_100Hz:
-				regVal = 0x09;
+				rate = 0x09;
+				break;
 			default:
-				regVal = 0x00;
+				rate = 0x00;
 				break;
 		}
 	}
 
-	else{
+
 		regVal =  rate;
-	}
 
 	/* Set data sample rate */
 	if (HAL_I2C_Mem_Write(I2Cx, DevAddress, MPU6050_SMPLRT_DIV, REG_SIZE, &regVal, REG_SIZE, 1000))
@@ -231,27 +231,15 @@ MPU6050_Result MPU6050_SetDataRate( MPU6050* ptrConfigStruct, MPU6050_DataRate r
 				return MPU6050_Result_Error;
 	}
 
-		/* Return OK */
-	if( (ptrConfigStruct->LowPassFilter != MPU6050_DLPF_OFF) && (ptrConfigStruct->LowPassFilter != MPU6050_DLPF_Disable) ){
+		/* Assert value*/
+	regVal = 0x00;
+	if (HAL_I2C_Mem_Read(I2Cx, DevAddress, MPU6050_SMPLRT_DIV, REG_SIZE, &regVal, REG_SIZE, 1000))
+	 {
+			return MPU6050_Result_Error;
+	 }
 
-		switch (rate) {
-			case MPU6050_DataRate_8KHz:
-			case MPU6050_DataRate_4KHz:
-			case MPU6050_DataRate_2KHz:
-			case MPU6050_DataRate_1KHz:
-
-				ptrConfigStruct->DataRate = MPU6050_DataRate_1KHz;
-				break;
-
-			default:
-				ptrConfigStruct->DataRate = rate;
-				break;
-		}
-	}
-	else{
-		ptrConfigStruct->DataRate = rate;
-	}
-		return MPU6050_Result_Ok;
+	if ( regVal == rate ) return MPU6050_Result_Ok;
+	else return MPU6050_Result_Error;
 
 }
 
@@ -277,7 +265,7 @@ MPU6050_Result MPU6050_setFullScaleAccelRange(MPU6050* ptrConfigStruct, MPU6050_
 
 	if (regVal == (uint8_t) (AccelerometerRange << 3) ){
 		ptrConfigStruct->AccelerometerRange = AccelerometerRange;
-		ptrConfigStruct->Accel_Scale = MPU6050_getAccelScale();
+		ptrConfigStruct->Accel_Scale = MPU6050_getAccelScale(ptrConfigStruct);
 		// Return OK
 		return MPU6050_Result_Ok;
 	}else{
@@ -307,7 +295,7 @@ MPU6050_Result MPU6050_setFullScaleGyroRange(MPU6050* ptrConfigStruct, MPU6050_G
 
 	if (regVal  == (uint8_t) (GyroscopeRange << 3) ){
 		ptrConfigStruct->GyroscopeRange = GyroscopeRange;
-		ptrConfigStruct->Gyro_Scale = MPU6050_getGyroScale();
+		ptrConfigStruct->Gyro_Scale = MPU6050_getGyroScale(ptrConfigStruct);
 		// Return OK
 		return MPU6050_Result_Ok;
 	}else{
@@ -513,7 +501,7 @@ MPU6050_Result MPU6050_ReadInterrupts(MPU6050* ptrConfigStruct)
 	return MPU6050_Result_Ok;
 }
 
-inline static float MPU6050_getGyroScale(){
+inline static float MPU6050_getGyroScale(MPU6050* ptrConfigStruct){
 
 	uint8_t regVal ,GyroscopeRange ;
 
@@ -525,16 +513,16 @@ inline static float MPU6050_getGyroScale(){
 
 	switch (GyroscopeRange) {
 			case MPU6050_Gyroscope_250s:
-				return MPU6050_DEG_TO_RAD / MPU6050_GYRO_SENS_250;
+				return ptrConfigStruct->GyrOutputUnit / MPU6050_GYRO_SENS_250;
 				break;
 			case MPU6050_Gyroscope_500s:
-				return MPU6050_DEG_TO_RAD / MPU6050_GYRO_SENS_500;
+				return ptrConfigStruct->GyrOutputUnit / MPU6050_GYRO_SENS_500;
 				break;
 			case MPU6050_Gyroscope_1000s:
-				return MPU6050_DEG_TO_RAD / MPU6050_GYRO_SENS_1000;
+				return ptrConfigStruct->GyrOutputUnit / MPU6050_GYRO_SENS_1000;
 				break;
 			case MPU6050_Gyroscope_2000s:
-				return MPU6050_DEG_TO_RAD / MPU6050_GYRO_SENS_2000;
+				return ptrConfigStruct->GyrOutputUnit / MPU6050_GYRO_SENS_2000;
 				break;
 			default:
 				break;
@@ -543,7 +531,7 @@ inline static float MPU6050_getGyroScale(){
 	return (float)(0.0);
 }
 
-inline static float MPU6050_getAccelScale()
+inline static float MPU6050_getAccelScale(MPU6050* ptrConfigStruct)
 {
 	uint8_t regVal ,AccelerometerRange ;
 
@@ -555,16 +543,16 @@ inline static float MPU6050_getAccelScale()
 
 	switch (AccelerometerRange) {
 		case MPU6050_Accelerometer_2G:
-			return MPU6050_GRAVITY_ACCEL / MPU6050_ACCE_SENS_2;
+			return ptrConfigStruct->AccOutputUnit / MPU6050_ACCE_SENS_2;
 			break;
 		case MPU6050_Accelerometer_4G:
-			return MPU6050_GRAVITY_ACCEL / MPU6050_ACCE_SENS_4;
+			return ptrConfigStruct->AccOutputUnit / MPU6050_ACCE_SENS_4;
 			break;
 		case MPU6050_Accelerometer_8G:
-			return MPU6050_GRAVITY_ACCEL / MPU6050_ACCE_SENS_8;
+			return ptrConfigStruct->AccOutputUnit / MPU6050_ACCE_SENS_8;
 			break;
 		case MPU6050_Accelerometer_16G:
-			return MPU6050_GRAVITY_ACCEL / MPU6050_ACCE_SENS_16;
+			return ptrConfigStruct->AccOutputUnit / MPU6050_ACCE_SENS_16;
 			break;
 		default:
 			break;

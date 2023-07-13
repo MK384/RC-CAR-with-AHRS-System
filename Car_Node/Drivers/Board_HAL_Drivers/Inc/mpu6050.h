@@ -39,18 +39,6 @@ extern "C" {
 #define MPU6050_I2C_ADDR_AD0_LOW	0xD0
 #define MPU6050_I2C_ADDR_AD0_HIGH	0xD1
 
-/**
- * @defgroup  Conversion defines
- * @{
- */
-
-#define 	MPU6050_GRAVITY_ACCEL	((float)(9.805))
-#define		MPU6050_DEG_TO_RAD		((float)(0.01745329252))
-
-
-/**
- * @}
- */
 
 /**
  * @defgroup SD_MPU6050_Typedefs
@@ -148,11 +136,29 @@ typedef enum {
 
 }MPU6050_InterruptState;
 
+
+
+
+/**
+ * @defgroup  Accelerometer output unit
+ * @{
+ */
+
+#define		MPU6050_ACC_UNIT_MPS_2 		((float)(9.805))
+#define		MPU6050_ACC_UNIT_G			((float) 1.0)
+
+#define		MPU6050_GYR_UNIT_RPS			((float)(0.01745329252))
+#define		MPU6050_GYR_UNIT_DPS			((float)(1.0))
+
+/**
+ * @}
+ */
 /**
  * @brief  Main MPU6050 structure
  */
 typedef struct  {
 
+	/*Input Data*/
 	// communication parameters
 	I2C_HandleTypeDef* I2Cx;						/*pointer to Handler struct of the I2C used to communication */
 	uint8_t Address;           						/*!< I2C address of device. */
@@ -177,6 +183,10 @@ typedef struct  {
 		uint8_t reg;
 	}InterruptFlags;
 
+	float  AccOutputUnit;
+	float  GyrOutputUnit;
+
+	/*Output Data*/
 
 	int16_t Accel_RawData[3];			     /*!< Accelerometer raw data values around three axis   */
 	int16_t Gyro_RawData[3];     		     /*!< Gyroscope raw data values around three axis  */

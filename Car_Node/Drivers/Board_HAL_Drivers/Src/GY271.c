@@ -124,28 +124,28 @@ GY271_Result GY271_Init(GY271 * dataStruct){
 	/* set mag gain*/
 	switch (dataStruct->range) {
 		case GY271_Range_0_9Ga:
-			magGain = (float)1.0 / GY271_GAIN_LSB_0_9Ga;
+			magGain = dataStruct->outputUnit / GY271_GAIN_LSB_0_9Ga;
 			break;
 		case GY271_Range_1_3Ga:
-			magGain = (float)1.0 / GY271_GAIN_LSB_1_3Ga;
+			magGain = dataStruct->outputUnit / GY271_GAIN_LSB_1_3Ga;
 			break;
 		case GY271_Range_1_9Ga:
-			magGain = (float)1.0 / GY271_GAIN_LSB_1_9Ga;
+			magGain = dataStruct->outputUnit / GY271_GAIN_LSB_1_9Ga;
 			break;
 		case GY271_Range_2_5Ga:
-			magGain = (float)1.0 / GY271_GAIN_LSB_2_5Ga;
+			magGain = dataStruct->outputUnit / GY271_GAIN_LSB_2_5Ga;
 			break;
 		case GY271_Range_4_0Ga:
-			magGain = (float)1.0 / GY271_GAIN_LSB_4_0Ga;
+			magGain = dataStruct->outputUnit / GY271_GAIN_LSB_4_0Ga;
 			break;
 		case GY271_Range_4_7Ga:
-			magGain = (float)1.0 / GY271_GAIN_LSB_4_7Ga;
+			magGain = dataStruct->outputUnit / GY271_GAIN_LSB_4_7Ga;
 			break;
 		case GY271_Range_5_6Ga:
-			magGain = (float)1.0 / GY271_GAIN_LSB_5_6Ga;
+			magGain = dataStruct->outputUnit / GY271_GAIN_LSB_5_6Ga;
 			break;
 		case GY271_Range_8_1Ga:
-			magGain = (float)1.0 / GY271_GAIN_LSB_8_1Ga;
+			magGain = dataStruct->outputUnit / GY271_GAIN_LSB_8_1Ga;
 			break;
 
 		default:
@@ -178,7 +178,12 @@ GY271_Result GY271_getData( GY271* dataStruct){
 	dataStruct->Compass_Xyz[1] = dataStruct->Compass_Raw[1] * magGain;
 	dataStruct->Compass_Xyz[2] = dataStruct->Compass_Raw[2] * magGain;
 
+	uint8_t regVal = 0x00;
 
+	/*Read status register*/
+	if (HAL_I2C_Mem_Read(I2Cx, GY271_I2C_ADDR, GY271_STATUS, 1, &regVal, 1, 1000)){
+		return GY271_Result_Error;
+	}
 
 	return GY271_Result_Ok;
 }
@@ -193,7 +198,7 @@ GY271_Result GY271_getReadyFlag(GY271* dataStruct){
 		return GY271_Result_Error;
 	}
 
-	dataStruct->dataReadFlag = regVal & 0x01;
+	dataStruct->dataReadyFlag = regVal & 0x01;
 
 	return GY271_Result_Ok;
 
