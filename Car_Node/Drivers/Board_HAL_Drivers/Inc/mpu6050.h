@@ -145,10 +145,13 @@ typedef enum {
  */
 
 #define		MPU6050_ACC_UNIT_MPS_2 		((float)(9.805))
-#define		MPU6050_ACC_UNIT_G			((float) 1.0)
+#define		MPU6050_ACC_UNIT_G			((float) 1.0   )
+#define		MPU6050_ACC_UNIT_MILLI_G	((float) 1000.0)
 
-#define		MPU6050_GYR_UNIT_RPS			((float)(0.01745329252))
-#define		MPU6050_GYR_UNIT_DPS			((float)(1.0))
+
+#define		MPU6050_GYR_UNIT_RPS		((float)(0.01745329252))
+#define		MPU6050_GYR_UNIT_DPS		((float)(1.0)          )
+#define		MPU6050_GYR_UNIT_MDPS		((float)(1000.0)       )
 
 /**
  * @}

@@ -144,9 +144,10 @@ typedef enum {
  * @{
  */
 #define		GY271_UNIT_GAUSS				((float) 1.0    )
+#define		GY271_UNIT_MILLI_GAUSS			((float) 1000.0 )
 #define		GY271_UNIT_TESLA				((float) 0.0001 )
 #define		GY271_UNIT_MICRO_TESLA			((float) 100.0  )
-#define		GY271_UNIT_MICRO_TESLA_PER_50	((float) 5000.0 )
+#define		GY271_UNIT_MICRO_TESLA_PER_50	((float) 2.0    )
 /**
  * @}
  */

@@ -17,22 +17,22 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <OrientationTrack.h>
 #include "main.h"
 #include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usbd_cdc_if.h"
-#include "mpu6050.h"
-#include "GY271.h"
-#include "math.h"
+//#include "mpu6050.h"
+//#include "GY271.h"
+
 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 //#include "arm_math.h"
-#include "motion_fx.h"
 
 /* USER CODE END PTD */
 
@@ -70,193 +70,6 @@ static void MX_CRC_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-#define RAD_TO_DEG	((float) 57.2957795)
-
-MPU6050 mpu1;
-GY271   mag1;
-
-
-
-
-
-
-float roll , pitch , yaw , heading;
-
-
-void calculateGbias(float * bias)
-{
-
-	bias[0] = 0.0;
-	bias[1] = 0.0;
-	bias[2] = 0.0;
-
-
-	for (int var = 0; var < 50; ++var) {
-
-
-		MPU6050_ReadAll(&mpu1);
-
-		bias[0] += mpu1.Gyro_Xyz[0];
-		bias[1] += mpu1.Gyro_Xyz[1];
-		bias[2] += mpu1.Gyro_Xyz[2];
-
-		HAL_Delay(10);
-	}
-
-	bias[0] /= (float)50.0;
-	bias[1] /= (float)50.0;
-	bias[2] /= (float)50.0;
-}
-
-#define MFX_STR_LENG 35
-
-void init_MotionFX(void){
-
-	/*** Initialization ***/
-	char lib_version[MFX_STR_LENG];
-
-	/* Sensor Fusion API initialization function */
-	MotionFX_initialize();
-	/* Optional: Get version */
-	MotionFX_GetLibVersion(lib_version);
-
-
-	MFX_knobs_t iKnobs;
-	MotionFX_getKnobs(&iKnobs);
-
-	iKnobs.start_automatic_gbias_calculation = 1;
-	iKnobs.output_type = MFX_ENGINE_OUTPUT_ENU;
-
-	iKnobs.acc_orientation[0] = 'e';
-	iKnobs.acc_orientation[0] = 'n';
-	iKnobs.acc_orientation[0] = 'u';
-
-	iKnobs.gyro_orientation[0] = 'e';
-	iKnobs.gyro_orientation[0] = 'n';
-	iKnobs.gyro_orientation[0] = 'u';
-
-
-	iKnobs.mag_orientation[0] = 's';
-	iKnobs.mag_orientation[0] = 'e';
-	iKnobs.mag_orientation[0] = 'u';
-
-	MotionFX_setKnobs(&iKnobs);
-
-
-	MotionFX_enable_6X(MFX_ENGINE_DISABLE);
-	MotionFX_enable_9X(MFX_ENGINE_ENABLE);
-
-
-}
-
-MFX_input_t data_in;
-MFX_output_t data_out;
-uint32_t LastTimePropagate = 0 , LastTimeUpdate = 0.0, dT;
-float dT_sec;
-uint8_t printFlag;
-
-
-void 	SensorFusionAlgorithm(void){
-
-
-	MPU6050_ReadAll(&mpu1);
-	GY271_getData(&mag1);
-
-	data_in.acc[0] = mpu1.Accel_Xyz[0];
-	data_in.acc[1] = mpu1.Accel_Xyz[1];
-	data_in.acc[2] = mpu1.Accel_Xyz[2];
-
-	data_in.gyro[0] = mpu1.Gyro_Xyz[0];
-	data_in.gyro[1] = mpu1.Gyro_Xyz[1];
-	data_in.gyro[2] = mpu1.Gyro_Xyz[2];
-
-	data_in.mag[0] = mag1.Compass_Xyz[0];
-	data_in.mag[1] = mag1.Compass_Xyz[1];
-	data_in.mag[2] = mag1.Compass_Xyz[2];
-
-
-	dT = TIM2->CNT - LastTimePropagate;
-	LastTimePropagate = TIM2->CNT;
-	dT_sec = ( ((float) dT) / ((float)1000000.0) );
-
-	MotionFX_propagate(&data_out, &data_in, &dT_sec);
-
-
-	dT = TIM2->CNT - LastTimeUpdate;
-	LastTimeUpdate = TIM2->CNT;
-	dT_sec = ( ((float) dT) / ((float)1000000.0) );
-
-	MotionFX_update(&data_out, &data_in, &dT_sec, NULL);
-
-
-	yaw = data_out.rotation_9X[0];
-	pitch = data_out.rotation_9X[1];
-	roll = data_out.rotation_9X[2];
-
-	heading = data_out.heading_9X;
-
-	printFlag = 1;
-
-
-}
-
-void init_sensors(void){
-
-
-	  mpu1.I2Cx = &hi2c1;
-	  mpu1.Address = MPU6050_I2C_ADDR_AD0_LOW;
-	  mpu1.LowPassFilter = MPU6050_DLPF_BW_98Hz;
-	  mpu1.DataRate = MPU6050_DataRate_100Hz;
-	  mpu1.AccelerometerRange = MPU6050_Accelerometer_2G;
-	  mpu1.GyroscopeRange= MPU6050_Gyroscope_250s;
-	  mpu1.interruptState = MPU6050_Interrupt_Enabled;
-	  mpu1.AccOutputUnit = MPU6050_ACC_UNIT_G;
-	  mpu1.GyrOutputUnit = MPU6050_GYR_UNIT_DPS;
-
-	  if (MPU6050_Init(&mpu1))
-	  {
-		  while(1)
-		  {
-			  HAL_Delay(1000);
-			  printf("Error in init MPU6050! \n\r");
-		  }
-	  }
-
-
-	  mag1.I2Cx = &hi2c1;
-	  mag1.dataRate = GY271_DataRate_30_Hz;
-	  mag1.range = GY271_Range_4_7Ga;
-	  mag1.mode = GY271_Mode_Continuous;
-	  mag1.samplesRate = GY271_SampleAvg_4_S;
-	  mag1.outputUnit = GY271_UNIT_MICRO_TESLA_PER_50;
-
-	  if (GY271_Init(&mag1))
-	  {
-
-		  while(1)
-		  {
-			  HAL_Delay(1000);
-			  printf("Error in init GY271! \n\r");
-		  }
-	  }
-
-
-}
-
-
-
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-
-	SensorFusionAlgorithm();
-
-
-}
-
-
-
-
 /* USER CODE END 0 */
 
 /**
@@ -292,11 +105,7 @@ int main(void)
   MX_TIM2_Init();
   MX_CRC_Init();
   /* USER CODE BEGIN 2 */
-
-  HAL_TIM_Base_Start(&htim2);
-  init_sensors();
-//
-  init_MotionFX();
+  MX_DataLogFusion_Init();
 
 
   /* USER CODE END 2 */
@@ -304,24 +113,12 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
+
+
   while (1)
   {
 
-
-
-	  	if (printFlag){
-
-	  		printf("%.3f,%.3f,%.3f\r\n",roll ,pitch ,heading);
-	  		printFlag = 0;
-
-	  	}
-
-
-
-
-
-
-
+	  MX_DataLogFusion_Process();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -496,6 +293,22 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PA0 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : LED_Pin */
+  GPIO_InitStruct.Pin = LED_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : MPUP6050_RDY_INT_Pin */
   GPIO_InitStruct.Pin = MPUP6050_RDY_INT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
@@ -503,7 +316,10 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(MPUP6050_RDY_INT_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 1, 0);
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 1, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
