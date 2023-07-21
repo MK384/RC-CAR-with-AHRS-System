@@ -1,8 +1,32 @@
-/*
- * sd_hal_mpu6050.h
+/**
+ * File : MPU6050_Basic.h
+ */
+/**
+ *  Based on InvenSense MPU-6050 register map document rev. 2.0, 5/19/2011 (RM-MPU-6000A-00)
+ *  Created on: Jul 18, 2023, By "Mohammed Khaled" <Mohammed.kh384@gmail.com>
  *
- *  Created on: Feb 19, 2016
- *      Author: Sina Darvishi
+ * This file contains the declaration of basic sensor operations for the MPU6050 IMU (Inertial Measurement Unit)
+ *  using the I2Cdev library. It provides functions for configuring the sensor and retrieving raw data from it.
+ *  The original library, created by Jeff Rowberg, was primarily designed for the Arduino platform and written in C++.
+ *   However, you have modified the library to work with STM32 and converted the code to C for reduced memory footprint.
+ * The purpose of this file is to encapsulate the fundamental functionality required to interact with the MPU6050 sensor
+ *
+ * The original code in I2Cdev library was partially refactored and grouped in Three files:
+ *
+ * (1) MPU6050_Basic (.h /.c) :
+ * 		contains the implementation of basic sensor operations for the MPU6050 IMU ,
+ * 		It provides functions for configuring the sensor and retrieving raw data from it.
+ *
+ *
+ * (2) MPU6050_Advanced (.h /.c) :
+ * 		contains the implementation of more advanced features for the MPU6050 sensor using the I2Cdev library.
+ * 		It includes functions for dealing with slave external sensors and MPU I2C master operations.
+ *
+ * 	(3) MPU6050_DMP (.h /.c) :
+ * 		 contains the implementation of the Digital Motion Processing (DMP) functionality for the MPU6050 sensor using the I2Cdev library.
+ *
+ *  In Addition to the dependency file I2cdev based on STM32 HAL Library.
+ *
  */
 
 #ifndef DRIVERS_MYLIB_SD_HAL_MPU6050_H_
@@ -17,6 +41,7 @@ extern "C" {
 
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_i2c.h"
+#include "MPU6050_Defs.h"
 
 /**
  * @defgroup SD_MPU6050_Macros
@@ -40,16 +65,7 @@ extern "C" {
 #define MPU6050_I2C_ADDR_AD0_HIGH	0xD1
 
 
-/**
- * @defgroup SD_MPU6050_Typedefs
- * @brief    Library Typedefs
- * @{
- */
 
-/**
- * @brief  Data rates while LPF is OFF predefined constants
- * @{
- */
 
 typedef enum {
 

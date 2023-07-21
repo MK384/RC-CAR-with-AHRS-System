@@ -1,30 +1,35 @@
-/*
- * sd_hal_mpu6050.c
- *
- *  Created on: Feb 19, 2016
- *  Author: Sina Darvishi
- */
-
 /**
- * |----------------------------------------------------------------------
- * | Copyright (C) Sina Darvishi,2016
- * |
- * | This program is free software: you can redistribute it and/or modify
- * | it under the terms of the GNU General Public License as published by
- * | the Free Software Foundation, either version 3 of the License, or
- * | any later version.
- * |
- * | This program is distributed in the hope that it will be useful,
- * | but WITHOUT ANY WARRANTY; without even the implied warranty of
- * | MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * | GNU General Public License for more details.
- * |
- * | You should have received a copy of the GNU General Public License
- * | along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * |----------------------------------------------------------------------
+ * File : MPU6050_Basic.c
+ */
+/**
+ *  Based on InvenSense MPU-6050 register map document rev. 2.0, 5/19/2011 (RM-MPU-6000A-00)
+ *  Created on: Jul 18, 2023, By "Mohammed Khaled" <Mohammed.kh384@gmail.com>
+ *
+ * This file contains the declaration of basic sensor operations for the MPU6050 IMU (Inertial Measurement Unit)
+ *  using the I2Cdev library. It provides functions for configuring the sensor and retrieving raw data from it.
+ *  The original library, created by Jeff Rowberg, was primarily designed for the Arduino platform and written in C++.
+ *   However, you have modified the library to work with STM32 and converted the code to C for reduced memory footprint.
+ * The purpose of this file is to encapsulate the fundamental functionality required to interact with the MPU6050 sensor
+ *
+ * The original code in I2Cdev library was partially refactored and grouped in Three files:
+ *
+ * (1) MPU6050_Basic (.h /.c) :
+ * 		contains the implementation of basic sensor operations for the MPU6050 IMU ,
+ * 		It provides functions for configuring the sensor and retrieving raw data from it.
+ *
+ *
+ * (2) MPU6050_Advanced (.h /.c) :
+ * 		contains the implementation of more advanced features for the MPU6050 sensor using the I2Cdev library.
+ * 		It includes functions for dealing with slave external sensors and MPU I2C master operations.
+ *
+ * 	(3) MPU6050_DMP (.h /.c) :
+ * 		 contains the implementation of the Digital Motion Processing (DMP) functionality for the MPU6050 sensor using the I2Cdev library.
+ *
+ *  In Addition to the dependency file I2cdev based on STM32 HAL Library.
+ *
  */
 
-#include "mpu6050.h"
+#include <MPU6050_Basic.h>
 
 
 
@@ -65,19 +70,6 @@
 #define MPU6050_FIFO_COUNTL			0x73
 #define MPU6050_FIFO_R_W			0x74
 #define MPU6050_WHO_AM_I			0x75
-
-/* Gyro sensitivities in degrees/s */
-#define MPU6050_GYRO_SENS_250		((float) 131.0)
-#define MPU6050_GYRO_SENS_500		((float) 65.5)
-#define MPU6050_GYRO_SENS_1000		((float) 32.8)
-#define MPU6050_GYRO_SENS_2000		((float) 16.4)
-
-/* Acce sensitivities in g/s */
-#define MPU6050_ACCE_SENS_2			((float) 16384)
-#define MPU6050_ACCE_SENS_4			((float) 8192)
-#define MPU6050_ACCE_SENS_8			((float) 4096)
-#define MPU6050_ACCE_SENS_16		((float) 2048)
-
 
 #define 	REG_SIZE			 	(1U)   // 1 byte
 
