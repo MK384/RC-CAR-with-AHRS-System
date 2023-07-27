@@ -32,10 +32,6 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
-#include "MPU6050_Basic.h"
-#include "MPU6050_Advanced.h"
-#include "MPU6050_DMP.h"
-
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -61,15 +57,18 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define LED_GREEN_Pin GPIO_PIN_13
-#define LED_GREEN_GPIO_Port GPIOB
-#define LED_YELLOW_Pin GPIO_PIN_15
-#define LED_YELLOW_GPIO_Port GPIOB
-#define LED_RED_Pin GPIO_PIN_10
-#define LED_RED_GPIO_Port GPIOA
-#define MPUP6050_RDY_INT_Pin GPIO_PIN_15
-#define MPUP6050_RDY_INT_GPIO_Port GPIOA
-#define MPUP6050_RDY_INT_EXTI_IRQn EXTI15_10_IRQn
+#define USER_BUTTON_Pin GPIO_PIN_0
+#define USER_BUTTON_GPIO_Port GPIOA
+#define USER_BUTTON_EXTI_IRQn EXTI0_IRQn
+#define GREEN_LED_Pin GPIO_PIN_13
+#define GREEN_LED_GPIO_Port GPIOB
+#define YELLOW_LED_Pin GPIO_PIN_15
+#define YELLOW_LED_GPIO_Port GPIOB
+#define RED_LED_Pin GPIO_PIN_10
+#define RED_LED_GPIO_Port GPIOA
+#define MPUP6050_INT_Pin GPIO_PIN_15
+#define MPUP6050_INT_GPIO_Port GPIOA
+#define MPUP6050_INT_EXTI_IRQn EXTI15_10_IRQn
 
 /* USER CODE BEGIN Private defines */
 

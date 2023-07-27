@@ -84,7 +84,8 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
-
+    	HAL_GPIO_WritePin(YELLOW_LED_GPIO_Port, YELLOW_LED_Pin, RESET);
+    	HAL_GPIO_WritePin(RED_LED_GPIO_Port, RED_LED_Pin, SET);
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
@@ -99,7 +100,8 @@ void HardFault_Handler(void)
 void MemManage_Handler(void)
 {
   /* USER CODE BEGIN MemoryManagement_IRQn 0 */
-
+	HAL_GPIO_WritePin(YELLOW_LED_GPIO_Port, YELLOW_LED_Pin, RESET);
+	HAL_GPIO_WritePin(RED_LED_GPIO_Port, RED_LED_Pin, SET);
   /* USER CODE END MemoryManagement_IRQn 0 */
   while (1)
   {
@@ -114,7 +116,8 @@ void MemManage_Handler(void)
 void BusFault_Handler(void)
 {
   /* USER CODE BEGIN BusFault_IRQn 0 */
-
+	HAL_GPIO_WritePin(YELLOW_LED_GPIO_Port, YELLOW_LED_Pin, RESET);
+	HAL_GPIO_WritePin(RED_LED_GPIO_Port, RED_LED_Pin, SET);
   /* USER CODE END BusFault_IRQn 0 */
   while (1)
   {
@@ -129,7 +132,8 @@ void BusFault_Handler(void)
 void UsageFault_Handler(void)
 {
   /* USER CODE BEGIN UsageFault_IRQn 0 */
-
+	HAL_GPIO_WritePin(YELLOW_LED_GPIO_Port, YELLOW_LED_Pin, RESET);
+	HAL_GPIO_WritePin(RED_LED_GPIO_Port, RED_LED_Pin, SET);
   /* USER CODE END UsageFault_IRQn 0 */
   while (1)
   {
@@ -206,7 +210,7 @@ void EXTI0_IRQHandler(void)
   /* USER CODE BEGIN EXTI0_IRQn 0 */
 
   /* USER CODE END EXTI0_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+  HAL_GPIO_EXTI_IRQHandler(USER_BUTTON_Pin);
   /* USER CODE BEGIN EXTI0_IRQn 1 */
 
   /* USER CODE END EXTI0_IRQn 1 */
@@ -220,7 +224,7 @@ void EXTI15_10_IRQHandler(void)
   /* USER CODE BEGIN EXTI15_10_IRQn 0 */
 
   /* USER CODE END EXTI15_10_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(MPUP6050_RDY_INT_Pin);
+  HAL_GPIO_EXTI_IRQHandler(MPUP6050_INT_Pin);
   /* USER CODE BEGIN EXTI15_10_IRQn 1 */
 
   /* USER CODE END EXTI15_10_IRQn 1 */

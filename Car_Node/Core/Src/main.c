@@ -23,7 +23,12 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usbd_cdc_if.h"
-
+#include "eMPL_App.h"
+#include "usb_com.h"
+#include "GY271.h"
+#include "motion_mc.h"
+#include "motion_ec.h"
+#include "BootloaderCntrl.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -39,7 +44,7 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+extern USBD_CDC_ItfTypeDef USBD_Interface_fops_FS;
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -66,7 +71,171 @@ static void MX_CRC_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+MMC_Input_t data_in = {0};
+MMC_Output_t data_out = {0};
+
+MEC_input_t ec_data_in = {0};
+MEC_output_t ec_data_out = {0};
+
+bool new_data = false;
+
+#define 	SAMPLE_FREQ  					 ((float)100.0f)
+#define     SAMPLE_PERIOD					 ((float)0.01f)
+
+static void setup_mag(){
+
+	GY271_HandleType mag = {0};
+	mag.I2Cx = &hi2c1;
+	mag.mode = GY271_Mode_Single;
+	mag.outputUnit = GY271_UNIT_MICRO_TESLA;
+	mag.range = GY271_Range_5_6Ga;
+
+	if(GY271_Init(&mag)){
+
+    	HAL_GPIO_WritePin(YELLOW_LED_GPIO_Port, YELLOW_LED_Pin, RESET);
+    	HAL_GPIO_WritePin(RED_LED_GPIO_Port, RED_LED_Pin, SET);
+
+	  while (1)
+	  {
+
+	  }
+	}
+}
+static void calibrate_mag(){
+
+
+	MotionMC_Initialize(10, 1);
+	data_in.TimeStamp = 0;
+	unsigned long time_us = get_us();
+	while(data_out.CalQuality != MMC_CALQSTATUSGOOD){
+
+		GY271_getMag(data_in.Mag);
+		MotionMC_Update(&data_in);
+
+		data_in.TimeStamp += 10;
+
+		MotionMC_GetCalParams(&data_out);
+
+		while(get_us() - time_us < 10000) {}
+		time_us = get_us();
+
+	}
+
+	MotionMC_Initialize(10, 0);
+
+	HAL_GPIO_WritePin(YELLOW_LED_GPIO_Port, YELLOW_LED_Pin, RESET);
+	HAL_GPIO_WritePin(GREEN_LED_GPIO_Port, GREEN_LED_Pin, SET);
+
+
+}
+static void calculate_mag_cal(float* Mag , float* Mag_cal){
+
+
+	/* Apply calibration coefficients */
+	 Mag_cal[0] = (int)((Mag[0] - data_out.HI_Bias[0]) * data_out.SF_Matrix[0][0]
+	                  + (Mag[1] - data_out.HI_Bias[1]) * data_out.SF_Matrix[0][1]
+	                  + (Mag[2] - data_out.HI_Bias[2]) * data_out.SF_Matrix[0][2]);
+
+
+	 Mag_cal[1] = (int)((Mag[0] - data_out.HI_Bias[0]) * data_out.SF_Matrix[1][0]
+					  + (Mag[1] - data_out.HI_Bias[1]) * data_out.SF_Matrix[1][1]
+	                  + (Mag[2] - data_out.HI_Bias[2]) * data_out.SF_Matrix[1][2]);
+
+
+	Mag_cal[2] = (int)((Mag[0] - data_out.HI_Bias[0]) * data_out.SF_Matrix[2][0]
+	                 + (Mag[1] - data_out.HI_Bias[1]) * data_out.SF_Matrix[2][1]
+					 + (Mag[2] - data_out.HI_Bias[2]) * data_out.SF_Matrix[2][2]);
+
+}
+static void setup_accel(){
+
+	struct int_param_s int_param;
+	if(mpu_init(&int_param))
+	{
+		HAL_GPIO_WritePin(YELLOW_LED_GPIO_Port, YELLOW_LED_Pin, RESET);
+		HAL_GPIO_WritePin(RED_LED_GPIO_Port, RED_LED_Pin, SET);
+		while(1);
+	}
+
+	mpu_set_sensors(INV_XYZ_ACCEL   | INV_XYZ_GYRO);
+	mpu_set_int_enable(1);
+	mpu_set_sample_rate(SAMPLE_FREQ);
+
+}
+static void ECompass_proccess(){
+
+	unsigned long  timestamp;
+	short accel[3] ;
+	unsigned short accel_sens;
+
+	  float mag[3];
+	  float mag_cal[3];
+	  float freq = SAMPLE_FREQ;
+
+
+	MotionEC_Initialize(&freq);
+
+	MotionEC_SetGravityEnable(MEC_DISABLE);
+	MotionEC_SetLinearAccEnable(MEC_DISABLE);
+	MotionEC_SetVirtualGyroEnable(MEC_DISABLE);
+	MotionEC_SetOrientationEnable(MEC_ENABLE);
+
+	mpu_get_accel_sens(&accel_sens);
+
+	while(1){
+
+		if(new_data){
+			new_data = false;
+
+			mpu_get_accel_reg(accel, &timestamp);
+			GY271_getMag(mag);
+			calculate_mag_cal(mag, mag_cal);
+
+			ec_data_in.acc[0] =  (float)accel[0] / (float) accel_sens;
+			ec_data_in.acc[1] = -(float)accel[1] / (float) accel_sens;
+			ec_data_in.acc[2] =  (float)accel[2] / (float) accel_sens;
+
+			ec_data_in.mag[0] =  mag_cal[1] / 50.0f;
+			ec_data_in.mag[1] =  mag_cal[0] / 50.0f;
+			ec_data_in.mag[2] =  mag_cal[2] / 50.0f;
+
+
+			ec_data_in.deltatime_s = SAMPLE_PERIOD;
+
+			MotionEC_Run(&ec_data_in, &ec_data_out);
+
+			printf("%.3f\r\n",ec_data_out.euler[0]);
+
+		}
+	}
+}
+int MotionMC_SaveCalInNVM(unsigned char* data, unsigned long len){
+	return 1;
+}
+int MotionMC_LoadCalFromNVM(unsigned char* data, unsigned long len){
+	return 1;
+}
+
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+
+	if (GPIO_Pin == MPUP6050_INT_Pin){
+
+		new_data = true;
+
+	}
+
+	if(GPIO_Pin == USER_BUTTON_Pin){
+//		User Request to go to bootloader
+		jumpToBootloader();
+	}
+}
+
+
 /* USER CODE END 0 */
+
+
 
 /**
   * @brief  The application entry point.
@@ -101,22 +270,24 @@ int main(void)
   MX_TIM2_Init();
   MX_CRC_Init();
   /* USER CODE BEGIN 2 */
+  HAL_TIM_Base_Start(&htim2);
+
+
+
+  setup_mag();
+  calibrate_mag();
+  setup_accel();
+  ECompass_proccess();
+
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-
-
-
   while (1)
   {
-
-
     /* USER CODE END WHILE */
-
     /* USER CODE BEGIN 3 */
-
   }
   /* USER CODE END 3 */
 }
@@ -288,36 +459,39 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, LED_GREEN_Pin|LED_YELLOW_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GREEN_LED_GPIO_Port, GREEN_LED_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LED_RED_GPIO_Port, LED_RED_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(YELLOW_LED_GPIO_Port, YELLOW_LED_Pin, GPIO_PIN_SET);
 
-  /*Configure GPIO pin : PA0 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(RED_LED_GPIO_Port, RED_LED_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : USER_BUTTON_Pin */
+  GPIO_InitStruct.Pin = USER_BUTTON_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_Init(USER_BUTTON_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LED_GREEN_Pin LED_YELLOW_Pin */
-  GPIO_InitStruct.Pin = LED_GREEN_Pin|LED_YELLOW_Pin;
+  /*Configure GPIO pins : GREEN_LED_Pin YELLOW_LED_Pin */
+  GPIO_InitStruct.Pin = GREEN_LED_Pin|YELLOW_LED_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LED_RED_Pin */
-  GPIO_InitStruct.Pin = LED_RED_Pin;
+  /*Configure GPIO pin : RED_LED_Pin */
+  GPIO_InitStruct.Pin = RED_LED_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LED_RED_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(RED_LED_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : MPUP6050_RDY_INT_Pin */
-  GPIO_InitStruct.Pin = MPUP6050_RDY_INT_Pin;
+  /*Configure GPIO pin : MPUP6050_INT_Pin */
+  GPIO_InitStruct.Pin = MPUP6050_INT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(MPUP6050_RDY_INT_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(MPUP6050_INT_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI0_IRQn, 1, 0);
